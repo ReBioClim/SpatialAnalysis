@@ -5,6 +5,7 @@ https://www.interreg-central.eu/projects/rebioclim/
 
 This GitHub repository is a collaboration platform for the project ReBioClim regarding the steps of spatial analysis in:
 - Data collection
+- Download, merge
 - Delineation
 - Calculation of variables per unit
 - GNN as a spatial variable as well
