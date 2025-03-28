@@ -23,7 +23,7 @@ city_boundary = city_boundary.to_crs(epsg=3857)
 
 stream = streams.sample(1)  # Select a test stream from the dataset
 
-# function to generate points at fixed intervals along the geometries in a GeoDataFrame
+#### function to generate points at fixed intervals along the stream
 def generate_points_for_streams(gdf, distance):
     all_points = []
 
@@ -54,7 +54,7 @@ points_gdf = generate_points_for_streams(stream, 100)
 print(points_gdf.head())
 
 
-## 
+## create the perpendicular lines on each point
 from shapely.geometry import LineString, LineString
 from shapely.affinity import rotate
 import math
@@ -116,8 +116,6 @@ perp_lines_gdf = create_perpendicular_lines(points_gdf, line_geometry, half_leng
 perp_lines_gdf.to_file("perpendicular_lines.geojson", driver="GeoJSON")
 
 #visualise the points and lines
-
-
 m = leafmap.Map(center=[center_lat, center_lon], zoom=12)
 m.add_gdf(stream, layer_name="Stream", style={"color": "red", "weight": 5})
 m.add_gdf(points_gdf, layer_name="Points", style={"color": "blue", "radius": 5})
