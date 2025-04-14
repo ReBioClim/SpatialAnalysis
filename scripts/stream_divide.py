@@ -78,7 +78,7 @@ plt.show()
 #### test with cutter every 100m along stream
 stream = streams.sample(1)  # Select a test stream from the dataset
 
-# function to generate points at fixed intervals along the geometries in a GeoDataFrame
+#### function to generate points at fixed intervals along the stream
 def generate_points_for_streams(gdf, distance):
     all_points = []
 
@@ -109,7 +109,7 @@ points_gdf = generate_points_for_streams(stream, 100)
 print(points_gdf.head())
 
 
-## 
+## create the perpendicular lines on each point
 from shapely.geometry import LineString, LineString
 from shapely.affinity import rotate
 import math
@@ -171,14 +171,13 @@ perp_lines_gdf = create_perpendicular_lines(points_gdf, line_geometry, half_leng
 perp_lines_gdf.to_file("perpendicular_lines.geojson", driver="GeoJSON")
 
 #visualise the points and lines
-
-
 m = leafmap.Map(center=[center_lat, center_lon], zoom=12)
 m.add_gdf(stream, layer_name="Stream", style={"color": "red", "weight": 5})
 m.add_gdf(points_gdf, layer_name="Points", style={"color": "blue", "radius": 5})
 m.add_gdf(city_boundary, layer_name="City Boundary")
 m.add_gdf(perp_lines_gdf, layer_name="Perp Lines", style={"color": "green", "weight": 2})
 m
+<<<<<<< HEAD
 
 
 ######### create fishnet grid 
@@ -218,3 +217,5 @@ ctx.add_basemap(ax, source=ctx.providers.OpenStreetMap.Mapnik, alpha=0.5)
 ax.set_title(place_name + " with corrected fishnet grid", fontsize=15)
 ax.axis('off')
 plt.show()
+=======
+>>>>>>> 52e7b09ab3be4b0685152611b99d8046f17ed733
