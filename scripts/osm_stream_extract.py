@@ -219,6 +219,9 @@ gdf_ways = gpd.GeoDataFrame({"osm_id": way_ids, "name": way_names, "geometry": w
 gdf_rels = gpd.GeoDataFrame({"osm_id": rel_ids, "name": rel_names, "geometry": rel_geoms}, crs="EPSG:4326")
 streams_all = pd.concat([gdf_ways, gdf_rels], ignore_index=True).to_crs(epsg=25833)  # to change city crs #poznan 2180 #other 25833
 
+######
+
+
 
 # only dissolve if name is not null
 named_streams = streams_all[streams_all["name"].notna()]
@@ -237,6 +240,9 @@ print(f"Number of streams: {len(streams_dissolve)}")
 # check for geometry duplicates, should be empty
 duplicate_geoms = streams_dissolve[streams_dissolve.duplicated(subset=["geometry"], keep=False)]
 print(duplicate_geoms)
+
+
+
 
 
 
@@ -281,3 +287,63 @@ names_fg.add_to(m)
 folium.LayerControl(collapsed=False).add_to(m)
 m.save(f"case_intro_{place_name}_v1.1.html")           
 
+
+#####
+
+
+####### convert multiline string to single line string
+# Load data
+city_name = "Dresden"
+target_crs = 25833  # poznan 2180
+
+import geopandas as gp
+from shapely.geometry import LineString, MultiLineString
+
+def explode_multilines(gdf):
+    rows = []
+    for idx, row in gdf.iterrows():
+        geom = row.geometry
+        if isinstance(geom, LineString):
+            rows.append(row)
+        elif isinstance(geom, MultiLineString):
+            for part in geom.geoms:
+                new_row = row.copy()
+                new_row.geometry = part
+                rows.append(new_row)
+    return gp.GeoDataFrame(rows, crs=gdf.crs)
+
+streams = gp.read_file(f"streams_{city_name}.gpkg").to_crs(epsg=target_crs)
+streams_clean = explode_multilines(streams)
+streams_clean.to_file("streams_lines_only.gpkg", driver="GPKG")
+print(f"Number of lines in streams_clean: {len(streams)}")
+
+
+######0509 explode stream multilinestring→single linestring
+import geopandas as gpd
+
+city_name = "Senica"
+multiline = gpd.read_file(f"streams_{city_name}_multi.gpkg")
+
+
+singleline = multiline.explode(index_parts=True, ignore_index=True)  # multilinestring to linestring
+
+
+# only dissolve if name is not null
+named_singleline = singleline[singleline["name"].notna()]
+unnamed_singleline = singleline[singleline["name"].isna()]
+singleline_named_dissolved = named_singleline.dissolve(by="name", as_index=False)
+singleline_dissolve = pd.concat([singleline_named_dissolved, unnamed_singleline], ignore_index=True)
+
+
+# check number of streams
+print(f"Number of streams: {len(singleline_dissolve)}")
+print(f"Number of unique stream names: {len(unnamed_singleline)}")
+
+
+# check for geometry duplicates, should be empty
+duplicate_geoms = singleline_dissolve[singleline_dissolve.duplicated(subset=["geometry"], keep=False)]
+print(duplicate_geoms)
+
+
+# save
+singleline_dissolve.to_file(f"streams_{city_name}.gpkg", driver="GPKG") 
