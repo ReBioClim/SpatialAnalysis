@@ -318,32 +318,24 @@ streams_clean.to_file("streams_lines_only.gpkg", driver="GPKG")
 print(f"Number of lines in streams_clean: {len(streams)}")
 
 
-######0509 explode stream multilinestring→single linestring
+######0509&0511 explode stream multilinestring→single linestring
+## still need to do, check if there are any duplicates
 import geopandas as gpd
 
-city_name = "Senica"
+city_name = "Dresden"
 multiline = gpd.read_file(f"streams_{city_name}_multi.gpkg")
 
 
 singleline = multiline.explode(index_parts=True, ignore_index=True)  # multilinestring to linestring
 
-
-# only dissolve if name is not null
-named_singleline = singleline[singleline["name"].notna()]
-unnamed_singleline = singleline[singleline["name"].isna()]
-singleline_named_dissolved = named_singleline.dissolve(by="name", as_index=False)
-singleline_dissolve = pd.concat([singleline_named_dissolved, unnamed_singleline], ignore_index=True)
-
-
-# check number of streams
-print(f"Number of streams: {len(singleline_dissolve)}")
-print(f"Number of unique stream names: {len(unnamed_singleline)}")
-
+singleline.to_file(f"streams_{city_name}_singleline.gpkg", driver="GPKG")  
 
 # check for geometry duplicates, should be empty
-duplicate_geoms = singleline_dissolve[singleline_dissolve.duplicated(subset=["geometry"], keep=False)]
+singleline = gpd.read_file(f"streams_{city_name}_singleline.gpkg")
+duplicate_geoms = singleline[singleline.duplicated(subset=["geometry"], keep=False)]
 print(duplicate_geoms)
+duplicate_geoms.to_file("duplicate_streams.gpkg", driver="GPKG")
 
+#Senica, two duplicates removed; Poznan, 3 duplicates removed; Jablonec, 1 duplicate removed; Dresden, 1 duplicates removed
 
-# save
-singleline_dissolve.to_file(f"streams_{city_name}.gpkg", driver="GPKG") 
+# if disolved, then multi linestring again
