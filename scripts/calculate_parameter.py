@@ -9,41 +9,49 @@ target_crs = 25833
 
 ##############
 #  Calculate sinuosity for each grid
+
+from shapely.geometry import LineString, MultiLineString, GeometryCollection
+
 sinuosity_values = []
 
 for square in grids.geometry:
-    # Clip the stream inside the square
+    # Clip stream inside square
     clipped = streams.intersection(square)
-    clipped = clipped[~clipped.is_empty]  # remove empty
-    
-    total_channel_length = 0 
+    clipped = clipped[~clipped.is_empty]
+
+    total_channel_length = 0
     total_downvalley_length = 0
-    
-    for part in clipped:
-        if isinstance(part, LineString):
-            channel_length = part.length
-            coords = part.coords
-            start = coords[0]
-            end = coords[-1]
-            downvalley_length = LineString([start, end]).length
-            
-            total_channel_length += channel_length
-            total_downvalley_length += downvalley_length
-    
-    # Calculate sinuosity for this square
+
+    for geom in clipped:
+        # Unpack MultiLineString or GeometryCollection
+        if isinstance(geom, (LineString, MultiLineString, GeometryCollection)):  #previous version only checked for LineString, but there seems to be multi/geocollection after clip?, leading to NULL values
+            parts = geom.geoms if hasattr(geom, "geoms") else [geom]
+            for part in parts:
+                if isinstance(part, LineString):
+                    channel_length = part.length
+                    coords = part.coords
+                    start = coords[0]
+                    end = coords[-1]
+                    downvalley_length = LineString([start, end]).length
+
+                    total_channel_length += channel_length
+                    total_downvalley_length += downvalley_length
+
+    # Compute sinuosity
     if total_downvalley_length > 0:
         sinuosity = total_channel_length / total_downvalley_length
     else:
-        sinuosity = None  # if no valid stream inside
-    
+        sinuosity = None
+
     sinuosity_values.append(sinuosity)
 
-# Add as a new column
 grids["sinuosity"] = sinuosity_values
 
 grids.to_file(f"{city_name}_stream_sinuosity.gpkg", driver="GPKG")
 
 print(grids.head())
+# check if any values are None
+print(grids[grids["sinuosity"].isna()])
 
 ##############
 #  Calculate building coverage for each grid
