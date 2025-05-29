@@ -1,106 +1,218 @@
 
 import geopandas as gpd
+import pandas as pd
 from shapely.geometry import LineString
 
 city_name = "Dresden"
-grids = gpd.read_file(f"fishnet_{city_name}.gpkg") # call it grids instead of fishnet, fishnet is non-rotated
-streams = gpd.read_file(f"streams_{city_name}_singleline.gpkg")
-target_crs = 25833 
+grids = gpd.read_file(f"data/fishnet_{city_name}.gpkg") 
+streams = gpd.read_file(f"data/stream_geometry/{city_name}_combined_clean_nopt.gpkg")
+
+##############0528
+# calculate impervious cover for each grid
+city_name = "Dresden"
+grids = gpd.read_file(f"data/fishnet_{city_name}.gpkg") 
+impervious = gpd.read_file("data/ready/Dresden/Sealing/sealing.gpkg")
+# CHECK FIELDS IN IMPERVIOUS DATA]
+print(impervious.columns)
+
+# check unique values in the versiegl_kl field
+print(impervious["versiegl_kl"].unique())
+print(impervious["deskn1"].unique())
+
+
+# remove the data where field deskn1 =0 data
+impervious = impervious[impervious["deskn1"] != 0]
+print(impervious.crs)
+
+#plot the impervious data
+import matplotlib.pyplot as plt
+
+impervious.plot(column="deskn1", legend=True)
+plt.axis("off")
+plt.show()
+grids.plot(alpha=0.5)
+plt.axis("off")
+plt.show()
+
+
+# create grid_id and calculate impervious area for each grid
+grids["grid_id"] = grids.index
+print(grids.head())
+
+impervious_intersections = gpd.overlay(grids, impervious, how='intersection')
+print(impervious_intersections.head())
+
+impervious_intersections.plot()
+plt.show()
+
+impervious_intersections["impervious_area"] = impervious_intersections.geometry.area
+impervious_area_sum = impervious_intersections.groupby("grid_id")["impervious_area"].sum()
+print(impervious_area_sum.head())
+grids["impervious_area"] = grids["grid_id"].map(impervious_area_sum)
+grids["impervious_area"] = grids["impervious_area"].fillna(0)
+grids["impervious_cover"] = grids["impervious_area"] / 10000
+grids["impervious_cover"] = grids["impervious_cover"].clip(upper=1)
+
+
+grids.plot(column="impervious_cover", legend=True)
+plt.show()
+
+# Save the grids with impervious cover
+impervious_intersections.to_file(f"{city_name}_impervious.gpkg", driver="GPKG")
+grids.to_file(f"{city_name}_grid_impervious.gpkg", driver="GPKG")
 
 ##############
-#  Calculate sinuosity for each grid
+# calculate slope for each grid
 
-from shapely.geometry import LineString, MultiLineString, GeometryCollection
+# import slope tif
+import rasterio
+slope = rasterio.open("Dresden_slope.tif") # calculated in qgis-gdal-slope
 
-sinuosity_values = []
+import matplotlib.pyplot as plt
 
-for square in grids.geometry:
-    # Clip stream inside square
-    clipped = streams.intersection(square)
-    clipped = clipped[~clipped.is_empty]
+# Read the first band (slope values)
+slope_data = slope.read(1)
 
-    total_channel_length = 0
-    total_downvalley_length = 0
+# mask no data value
+slope_data[slope_data == slope.nodata] = 0
+# Plot the slope data
+plt.imshow(slope_data, cmap='terrain')
+plt.colorbar(label='Slope (degrees)')
+plt.title('Slope Map')
+plt.axis('off')
+plt.show()
 
-    for geom in clipped:
-        # Unpack MultiLineString or GeometryCollection
-        if isinstance(geom, (LineString, MultiLineString, GeometryCollection)):  #previous version only checked for LineString, but there seems to be multi/geocollection after clip?, leading to NULL values
-            parts = geom.geoms if hasattr(geom, "geoms") else [geom]
-            for part in parts:
-                if isinstance(part, LineString):
-                    channel_length = part.length
-                    coords = part.coords
-                    start = coords[0]
-                    end = coords[-1]
-                    downvalley_length = LineString([start, end]).length
-
-                    total_channel_length += channel_length
-                    total_downvalley_length += downvalley_length
-
-    # Compute sinuosity
-    if total_downvalley_length > 0:
-        sinuosity = total_channel_length / total_downvalley_length
-    else:
-        sinuosity = None
-
-    sinuosity_values.append(sinuosity)
-
-grids["sinuosity"] = sinuosity_values
-
-grids.to_file(f"{city_name}_stream_sinuosity.gpkg", driver="GPKG")
+#
+city_name = "Dresden"
+grids = gpd.read_file(f"data/fishnet_{city_name}.gpkg") 
+grids["grid_id"] = grids.index
 
 print(grids.head())
-# check if any values are None
-print(grids[grids["sinuosity"].isna()])
+
+from rasterstats import zonal_stats
+import geopandas as gpd
+# Use the file path to the slope raster
+slope_stats = zonal_stats(grids, "Dresden_slope.tif", stats=["mean"], nodata=-9999, geojson_out = True) 
+slope_gdf = gpd.GeoDataFrame.from_features(slope_stats)
+print(slope_gdf.head())
+
+
+grids = grids.merge(slope_gdf[["grid_id", "mean"]], on="grid_id", how="left")
+grids.rename(columns={"mean": "slope_mean"}, inplace=True)
+print(grids.head())
+
+grids.to_file(f"{city_name}_grid_slope.gpkg", driver="GPKG")
+
+
+
+###############
+#### 0529
+from shapely.geometry import LineString, MultiLineString
+from matplotlib import pyplot as plt
+# calculate crossing count (road+railway crossing streams)
+city_name = "Dresden"
+grids = gpd.read_file(f"data/fishnet_{city_name}.gpkg") 
+roads = gpd.read_file("data/ready/Dresden/osm_roads/osm_roads.shp")
+railways = gpd.read_file("data/ready/Dresden/osm_railways/osm_railways.shp")
+#combine roads and railways into one GeoDataFrame
+transport = gpd.GeoDataFrame(pd.concat([roads, railways], ignore_index=True))
+print(transport.head())
+print(transport.fclass.unique())
+streams = gpd.read_file(f"data/stream_geometry/{city_name}_combined_clean_nopt.gpkg")
+
+# Ensure CRS match
+transport = transport.to_crs(grids.crs)
+streams = streams.to_crs(grids.crs)
+
+#from shapely.ops import unary_union, linemerge
+
+#  MultiLineString explode to LineString, filter LineString only
+streams = streams.explode(index_parts=False)
+streams = streams[streams.geometry.type == 'LineString']
+
+transport = transport.explode(index_parts=False)
+transport = transport[transport.geometry.type == 'LineString']
+
+# Get line-line intersections as points
+crossings = gpd.overlay(transport, streams, how='intersection', keep_geom_type=False)
+crossings.geom_type.unique()
+
+crossings = crossings[crossings.geometry.type.isin(['Point', 'MultiPoint'])]
+crossings = crossings.explode(index_parts=False)
+crossings.head()
+crossings = crossings.drop_duplicates(subset=["geometry"])
+# check number of crossings
+print(len(crossings))
+print(len(grids))
+
+# Count crossings in each grid
+grids["grid_id"] = grids.index
+crossings = crossings.to_crs(grids.crs)
+
+# Perform spatial join to find which crossings fall within each grid
+crossings_in_grid = gpd.sjoin(
+    crossings, grids[["grid_id", "geometry"]],
+    how="inner", predicate="intersects"
+)
+
+# Count crossings per grid
+crossing_stats = crossings_in_grid.groupby("grid_id").size().reset_index(name="crossing_count")
+
+# Merge crossing counts back to grids
+grids = grids.merge(crossing_stats, on="grid_id", how="left")
+
+grids["crossing_count"] = grids["crossing_count"].fillna(0).astype(int)
+
+# calculate number of each crossing count
+crossing_count_summary = grids["crossing_count"].value_counts().sort_index()
+print(crossing_count_summary)
+
+# Calculate stream length per grid
+stream_in_grid = gpd.overlay(streams, grids[["grid_id", "geometry"]], how="intersection")
+stream_in_grid["stream_len_m"] = stream_in_grid.geometry.length
+stream_len_stats = stream_in_grid.groupby("grid_id")["stream_len_m"].sum().reset_index()
+stream_len_stats["stream_length_100m"] = stream_len_stats["stream_len_m"] / 100
+
+# Merge stream length into grids
+grids = grids.merge(stream_len_stats[["grid_id", "stream_length_100m"]], on="grid_id", how="left")
+grids["stream_length_100m"] = grids["stream_length_100m"].fillna(0)
+
+# Calculate crossing per km of stream
+grids["crossing_per_100m_stream"] = grids["crossing_count"] / (grids["stream_length_100m"] )
+
+print(grids.head())
+# visualize in 
+grids.plot(column="crossing_per_100m_stream", legend=True)
+plt.title("Crossings per km of Stream")
+plt.axis("off")
+plt.show()
+
+grids.to_file(f"{city_name}_grid_crossing.gpkg", driver="GPKG")
 
 ##############
-#  Calculate building coverage for each grid
-footprint = gpd.read_file("data/ready/Dresden/osm_buildings/osm_buildings.shp")
-# check footprint crs
-print(footprint.crs)
-print(grids.crs)
-#footprint = footprint.to_crs(grids.crs)
+# merge the grid_impervious, grid_slope, and grid_crossing, keep only the columns we need
+grids_impervious = gpd.read_file(f"{city_name}_grid_impervious.gpkg")
+grids_slope = gpd.read_file(f"{city_name}_grid_slope.gpkg")
+grids_crossing = gpd.read_file(f"{city_name}_grid_crossing.gpkg")
 
-# Clip buildings to each grid (intersection)
-intersections = gpd.overlay(grids, footprint, how='intersection')
+#print(grids_impervious.head())
+grids_slope = grids_slope[["grid_id", "slope_mean"]]
+grids_crossing = grids_crossing[["grid_id", "crossing_per_100m_stream"]]
 
-# calculate area of buildings within each grid cell
-intersections["building_area"] = intersections.geometry.area
+grids_all = grids_impervious.merge(grids_slope, on="grid_id", how="left")
+grids_all = grids_all.merge(grids_crossing, on="grid_id", how="left")
 
-# Sum building area per grid (group by original grid index)
-building_area_sum = intersections.groupby(intersections.index)["building_area"].sum()
+print(grids_all.columns.unique())
+# select only required columns before saving
+grids_all = grids_all[["grid_id", "geometry", "impervious_cover", "slope_mean", "crossing_per_100m_stream"]]
+# Rename columns as specified
+grids_all = grids_all.rename(
+    columns={
+        "impervious_cover": "impervious",
+        "slope_mean": "slope",
+        "crossing_per_100m_stream": "crossing"
+    }
+)
 
-# Add area columns to the grid
-grids["grid_area"] = grids.geometry.area
-grids["building_area"] = building_area_sum
-grids["building_area"] = grids["building_area"].fillna(0)
-
-# calculate building coverage ratio
-grids["building_cover"] = grids["building_area"] / grids["grid_area"]
-grids.to_file(f"{city_name}_grid_test.gpkg", driver="GPKG")
-
-print(grids[["sinuosity", "building_cover"]].head())
-
-
-##############
-#  Calculate green cover for each grid
-greenspace = gpd.read_file("data/ready/Dresden/osm_greenspace/osm_greenspace.shp")
-# check footprint crs
-print(greenspace.crs)
-print(grids.crs)
-
-green_intersections = gpd.overlay(grids, greenspace, how='intersection')
-
-green_intersections["green_area"] = green_intersections.geometry.area
-
-green_area_sum = green_intersections.groupby(green_intersections.index)["green_area"].sum()
-
-grids["green_area"] = green_area_sum
-grids["green_area"] = grids["green_area"].fillna(0)
-
-grids["green_cover"] = grids["green_area"] / grids["grid_area"]
-
-grids.to_file(f"{city_name}_grid_test.gpkg", driver="GPKG")
-
-print(grids[["sinuosity", "building_cover", "green_cover"]].head())
-
+# save the grids_all
+grids_all.to_file("grids_TC.gpkg", driver="GPKG")
