@@ -339,3 +339,117 @@ duplicate_geoms.to_file("duplicate_streams.gpkg", driver="GPKG")
 #Senica, two duplicates removed; Poznan, 3 duplicates removed; Jablonec, 1 duplicate removed; Dresden, 1 duplicates removed
 
 # if disolved, then multi linestring again
+
+####### 20250526
+# add Drain and Culvert to the stream
+import os
+import osmnx as ox
+import geopandas as gpd
+import pandas as pd
+
+#city_name = "Dresden"
+#city_name = "Jablonec"
+city_name = "Poznan"
+#city_name = "Senica"
+
+streams_only = gpd.read_file(f"data/streams_{city_name}_singleline.gpkg")
+target_crs = 2180  # poznan 2180 #other 25833  
+#place_name = "Dresden, Germany"
+#place_name = "Jablonec nad Nisou, Czech Republic"
+place_name = "Poznań, Poland"
+#place_name = "Senica, Slovakia"
+                
+out_dir     = "data"                  
+
+
+streams_fp   = os.path.join(out_dir, f"streams_{city_name}_singleline.gpkg")
+streams_only = gpd.read_file(streams_fp).to_crs(target_crs)
+
+
+tags_culvert_drain = {
+    "waterway": ["drain", "ditch"],
+    "tunnel":   ["culvert"],
+    #"man_made": ["culvert", "drain"]
+}
+
+tags_water = {
+    "natural": ["water"]
+}
+
+tags_river = {
+    "waterway": ["river"],
+    "natural":  ["water"],
+    "water":    ["river"]
+}
+
+
+def fetch_and_save(tag_dict, label):
+    gdf = ox.features_from_place(place_name, tags=tag_dict).to_crs(target_crs)
+
+    # river: extra filtering
+    if label == "river":
+        gdf = gdf[(gdf["waterway"] == "river") | (gdf["water"] == "river")]
+
+    fp = os.path.join(out_dir, f"{label}_{city_name}.gpkg")
+    gdf.to_file(fp, driver="GPKG")
+    print(f"[{label:15}] {len(gdf):6} features  →  {os.path.basename(fp)}")
+    return gdf
+
+gdf_cd  = fetch_and_save(tags_culvert_drain, "culvert_drain")
+gdf_wtr = fetch_and_save(tags_water,        "water")
+gdf_riv = fetch_and_save(tags_river,        "river")
+
+
+combined = gpd.GeoDataFrame(
+    pd.concat([
+        streams_only.assign(source="streams"),
+        gdf_cd      .assign(source="culvert_drain"),
+        gdf_wtr     .assign(source="water"),
+        gdf_riv     .assign(source="river")
+    ], ignore_index=True),
+    crs=target_crs
+).drop_duplicates(subset="geometry")
+
+combined_stream = os.path.join(out_dir, f"{city_name}_combined_allblue.gpkg")
+combined.to_file(combined_stream, driver="GPKG")
+
+
+# 1) combine LineString / MultiLineString 
+line_union = combined[
+    combined.geometry.geom_type.isin(["LineString", "MultiLineString"])
+].geometry.unary_union
+
+# 2) check if line_union is empty
+if line_union.is_empty:
+    combined_clean = combined.copy()
+else:
+    # 2) 
+    def keep_feature(geom):
+        if geom.geom_type in ("Polygon", "MultiPolygon"):
+            return geom.intersects(line_union)   # only keep polygons that intersect with the line_union
+        else:
+            return True                          # keep all LineString / MultiLineString features
+
+    keep_mask = combined.geometry.apply(keep_feature)
+
+    # 3) filter
+    combined_clean = combined[keep_mask].copy()
+    dropped = len(combined) - len(combined_clean)
+
+# 4) write to file
+clean_fp = os.path.join(out_dir, f"{city_name}_combined_clean.gpkg")
+combined_clean.to_file(clean_fp, driver="GPKG")
+print(f"✔  写入 {os.path.basename(clean_fp)}")
+
+# 4) with point
+clean_fp_with_points = os.path.join(out_dir, f"{city_name}_combined_clean.gpkg")
+combined_clean.to_file(clean_fp_with_points, driver="GPKG")
+
+non_point_mask = ~combined_clean.geometry.geom_type.isin(["Point", "MultiPoint"])
+combined_nopt = combined_clean[non_point_mask].copy()
+
+dropped_pts = len(combined_clean) - len(combined_nopt)
+
+# nopint
+final_fp = os.path.join(out_dir, f"{city_name}_combined_clean_nopt.gpkg")
+combined_nopt.to_file(final_fp, driver="GPKG")
