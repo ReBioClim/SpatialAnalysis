@@ -27,13 +27,10 @@ print(impervious.crs)
 #plot the impervious data
 import matplotlib.pyplot as plt
 
-impervious.plot(column="deskn1", legend=True)
+impervious.plot(color="darkgrey")
+plt.title('Impervious surface')
 plt.axis("off")
 plt.show()
-grids.plot(alpha=0.5)
-plt.axis("off")
-plt.show()
-
 
 # create grid_id and calculate impervious area for each grid
 grids["grid_id"] = grids.index
@@ -55,6 +52,8 @@ grids["impervious_cover"] = grids["impervious_cover"].clip(upper=1)
 
 
 grids.plot(column="impervious_cover", legend=True)
+plt.title("Impervious Cover")
+plt.axis("off")
 plt.show()
 
 # Save the grids with impervious cover
@@ -118,7 +117,7 @@ railways = gpd.read_file("data/ready/Dresden/osm_railways/osm_railways.shp")
 transport = gpd.GeoDataFrame(pd.concat([roads, railways], ignore_index=True))
 print(transport.head())
 print(transport.fclass.unique())
-streams = gpd.read_file(f"data/stream_geometry/{city_name}_combined_clean_nopt.gpkg")
+streams = gpd.read_file(f"data/stream_geometry/{city_name}_combined_allstream.gpkg")
 
 # Ensure CRS match
 transport = transport.to_crs(grids.crs)
@@ -132,6 +131,44 @@ streams = streams[streams.geometry.type == 'LineString']
 
 transport = transport.explode(index_parts=False)
 transport = transport[transport.geometry.type == 'LineString']
+
+
+fig, ax = plt.subplots(figsize=(10, 10))
+streams.plot(ax=ax, color='blue', linewidth=1, label='Streams',alpha=0.7)
+transport.plot(ax=ax, color='grey', linewidth=0.3, alpha=0.5, label='Transport')
+
+ax.set_title('Transport and Streams Crossings')
+ax.axis('off')
+ax.legend()
+plt.show()
+
+grids.plot(edgecolor="black", facecolor="lightgray", linewidth=0.5)
+plt.title("Grids Geometry")
+plt.axis("off")
+plt.show()
+
+
+import matplotlib.pyplot as plt
+
+# Create figure and axis
+fig, ax = plt.subplots(figsize=(10, 10))
+
+# Plot the grid polygons (base layer)
+grids.plot(edgecolor="black", facecolor="lightgray", linewidth=0.5)
+
+# Overlay the streams as lines
+streams.plot(ax=ax, color="blue", linewidth=1, label="Streams")
+
+# Add title and remove axis
+ax.set_title("Grids and Streams")
+ax.axis("off")
+
+# Optional: Add a legend manually for streams
+ax.legend()
+
+plt.show()
+
+
 
 # Get line-line intersections as points
 crossings = gpd.overlay(transport, streams, how='intersection', keep_geom_type=False)
