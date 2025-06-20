@@ -20,6 +20,7 @@ city_name = "Senica"               # to change
 target_crs = "EPSG:25833"         # to change
 buffer_dist = 2000
 
+
 greenspace_fclass = [
     "park", "allotments", "grass", "forest", "scrub", "meadow",
     "recreation_ground", "heath", "nature_reserve", "orchard"
@@ -109,3 +110,59 @@ for name, gdf in clipped_layers.items():
     output_path = os.path.join(folder_path, f"osm_{name}.shp")
 
     gdf.to_file(output_path, driver="ESRI Shapefile", index=False)
+
+
+# 20250620
+# create catchment area for the 4 cities
+# if the catchment area is intersect with city boundary, then keep the catchment area
+# check working directory
+os.getcwd()
+
+
+city_boundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg")     
+catchment_all = gpd.read_file("data/catchment/hybas_lake_eu_lev12_v1c.shp")
+
+print(city_boundary.crs)    
+print(catchment_all.crs)
+
+# only keep the full catchment area with city boundary intersected
+catchment_all = catchment_all.to_crs(city_boundary.crs)
+catchment = catchment_all[catchment_all.geometry.intersects(city_boundary.union_all())].copy()
+len(catchment)
+
+catchment.to_file("data/catchment/intersected_catchments.gpkg", driver="GPKG")
+
+# clip waterway and water
+# Define data sources
+geofabrik_region = "poland"  # to change
+city_name = "Poznan"  # to change
+
+water_bodies = gpd.read_file(f"data/geofabrik/{geofabrik_region}.shp/gis_osm_water_a_free_1.shp")
+waterways =  gpd.read_file(f"data/geofabrik/{geofabrik_region}.shp/gis_osm_waterways_free_1.shp")
+
+print(water_bodies.crs)
+print(waterways.crs)
+
+water_bodies_clip = gpd.overlay(water_bodies, catchment, how="intersection")
+waterways_clip    = gpd.overlay(waterways, catchment, how="intersection")
+
+#stream = waterways_clip[waterways_clip["fclass"].isin(["stream", "river"])] # only applies to Senica, since in osm Teplica is both labeled as stream and river, the surrounding rivers were checked as well, also narrow
+stream = waterways_clip[(waterways_clip["fclass"] == "stream")]
+
+# only applies to Dresden, include "Prießnitz" river features as pointed out by Nora 
+stream = waterways_clip[
+    (waterways_clip["fclass"] == "stream") |
+    ((waterways_clip["fclass"] == "river") & (waterways_clip["name"] == "Prießnitz"))
+].copy()
+
+output_dir = "data/geofabrik"
+
+gpkg_path = os.path.join(output_dir, f"{city_name}_stream_geometry.gpkg")
+
+water_bodies_clip.to_file(gpkg_path, layer="waterbodies", driver="GPKG")
+waterways_clip.to_file(gpkg_path, layer="waterways", driver="GPKG")
+stream.to_file(gpkg_path, layer="stream", driver="GPKG")
+
+print(water_bodies_clip["fclass"].unique())
+print(waterways_clip["fclass"].unique())
+print(stream["fclass"].value_counts())
