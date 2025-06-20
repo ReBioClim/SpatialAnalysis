@@ -117,8 +117,6 @@ for name, gdf in clipped_layers.items():
 # if the catchment area is intersect with city boundary, then keep the catchment area
 # check working directory
 os.getcwd()
-
-
 city_boundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg")     
 catchment_all = gpd.read_file("data/catchment/hybas_lake_eu_lev12_v1c.shp")
 
