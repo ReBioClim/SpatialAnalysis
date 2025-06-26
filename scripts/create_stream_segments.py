@@ -1,59 +1,64 @@
 import geopandas as gpd
-from shapely.ops import linemerge, substring
-from shapely.geometry import LineString, MultiLineString
+from shapely.ops import linemerge, substring, unary_union
+from shapely.geometry import LineString, MultiLineString, Point
 import shapely
 import matplotlib.pyplot as plt
+from geopandas import GeoDataFrame
+
 
 # create stream segments
-# 0623
+# 0624
+# need to be careful, if only divide stream with name, or the raw stream geometry, the interval starts with each feature, not the complete stream
 
 stream = gpd.read_file("data/stream_geometry/combined_stream_geometry.gpkg", layer="stream_named_dissolved")  
 
-# randomly select 1 stream from the stream geometry
-stream_sample = stream.sample(n=1, random_state=919)
-print(stream_sample)
-print(stream_sample.crs)
-
-import geopandas as gpd
-from shapely.geometry import LineString, MultiLineString, Point
-from shapely.ops import substring
-import matplotlib.pyplot as plt
-
-stream = gpd.read_file("data/stream_geometry/combined_stream_geometry.gpkg", layer="stream")
-stream_sample = stream.sample(n=1, random_state=42).reset_index(drop=True)
+stream_sample= stream[stream["City"] == "Senica"]
 
 stream_sample = stream_sample.to_crs(epsg=25833)
-geom = stream_sample.geometry.iloc[0]
 
-# check if the geometry is a LineString or MultiLineString
-if isinstance(geom, LineString):
-    lines = [geom]
-elif isinstance(geom, MultiLineString):
-    lines = list(geom.geoms)
+merged = linemerge(unary_union(stream_sample.geometry))
+
+# check if merged is a MultiLineString or LineString
+lines = list(merged.geoms) if isinstance(merged, MultiLineString) else [merged]
+
 
 interval = 100
 split_points = []
-
-#generate split points along the stream line
+# iterate over each line and create split points at the specified interval
 for line in lines:
     length = line.length
     num_segments = int(length // interval)
     for i in range(1, num_segments):
-        dist = i * interval
-        pt = line.interpolate(dist)
+        pt = line.interpolate(i * interval)
         split_points.append(pt)
 
-for line in lines:
-    split_points.append(line.interpolate(0))
-    split_points.append(line.interpolate(line.length))
 
-fig, ax = plt.subplots(figsize=(10, 6))
+import folium
+import geopandas as gpd
+from shapely.geometry import mapping
 
-gpd.GeoSeries(lines, crs=stream_sample.crs).plot(ax=ax, color="lightgray", linewidth=2, label="Stream Line")
+stream_gdf = gpd.GeoDataFrame(geometry=lines, crs="EPSG:25833").to_crs(epsg=4326)
+points_gdf = gpd.GeoDataFrame(geometry=split_points, crs="EPSG:25833").to_crs(epsg=4326)
 
-gpd.GeoSeries(split_points, crs=stream_sample.crs).plot(ax=ax, color="red", markersize=20, label="Split Points")
+stream_gdf.to_file("data/stream_geometry/stream_segments.gpkg", layer="stream_segments", driver="GPKG")
+points_gdf.to_file("data/stream_geometry/stream_split_points.gpkg", layer="stream_split_points", driver="GPKG")
 
-plt.legend()
-plt.axis("equal")
-plt.tight_layout()
-plt.show()
+centroid = stream_gdf.unary_union.centroid
+map_center = [centroid.y, centroid.x]
+
+m = folium.Map(location=map_center, zoom_start=12, tiles='cartodbpositron')
+
+for geom in stream_gdf.geometry:
+    if geom.geom_type == "LineString":
+        folium.PolyLine(locations=[(pt[1], pt[0]) for pt in geom.coords],
+                        color="blue", weight=2, opacity=0.7).add_to(m)
+    elif geom.geom_type == "MultiLineString":
+        for line in geom.geoms:
+            folium.PolyLine(locations=[(pt[1], pt[0]) for pt in line.coords],
+                            color="blue", weight=2, opacity=0.7).add_to(m)
+
+for pt in points_gdf.geometry:
+    folium.CircleMarker(location=(pt.y, pt.x), radius=3, color='red', fill=True, fill_opacity=0.8).add_to(m)
+
+m
+m.save("stream_network_split_points.html")
