@@ -153,6 +153,19 @@ print(len(streamlines), len(riverlines), len(otherwaterways), len(waterpolygons)
 # 612 10 116 475
 
 #######
+
+allblue = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "waterway")
+allblue = allblue.to_crs("EPSG:4326")  # convert back to WGS84
+streamlines = allblue[allblue["waterway"] == "stream"].copy()
+riverlines = allblue[allblue["waterway"] == "river"].copy()
+otherwaterways = allblue[~allblue["waterway"].isin(["stream", "river"])].copy()
+underground = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "underground")
+waterpolygons = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "waterbody")
+
+print(underground.crs)
+
+underground_intersecting = underground[underground.intersects(allblue.union_all())]
+
 # map center
 city_boundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg")
 catchment = gpd.read_file("data/catchment/intersected_catchments.gpkg")
@@ -163,7 +176,7 @@ folium.TileLayer("CartoDB positron").add_to(m)
 
 # 1. City boundary
 folium.GeoJson(city_boundary, name="City Boundaries",
-               style_function=lambda x: {"color": "indianred", "weight": 4, "fillOpacity": 0.05}).add_to(m)
+               style_function=lambda x: {"color": "indianred", "weight": 2, "fillOpacity": 0.05}).add_to(m)
 
 # 2. Catchment
 folium.GeoJson(catchment, name="Catchments",
@@ -175,14 +188,18 @@ folium.GeoJson(streamlines, name="Streams",
 
 # 4. River
 folium.GeoJson(riverlines, name="River lines",
-               style_function=lambda x: {"color": "steelblue", "weight": 4}).add_to(m)
+               style_function=lambda x: {"color": "cyan", "weight": 4,"opacity": 0.5}).add_to(m)
 
 # 5. All other waterways
 folium.GeoJson(otherwaterways, name="Other waterways(ditch,drain,canal,etc.)",
                style_function=lambda x: {"color": "darkturquoise", "weight": 3}).add_to(m)
 
+# 6. Underground
+folium.GeoJson(underground_intersecting, name="Underground (tunnel,culvert)",
+               style_function=lambda x: {"color": "palevioletred", "weight": 3,"opacity": 0.5 }).add_to(m)
 
-# 6. All waterbodies
+
+# 7. All waterbodies
 folium.GeoJson(waterpolygons, name="Waterbodies",
                style_function=lambda x: {
                    "color": "lightblue",   "fillColor": "lightblue", "weight": 1,  
@@ -191,12 +208,19 @@ folium.GeoJson(waterpolygons, name="Waterbodies",
 
 folium.LayerControl(collapsed=False).add_to(m)
 
-m.save("all_cities_stream_map1.html")
-
+m.save("all_cities_stream_map1.2.html")
 
 
 ## underground waterways
+# there was another old version 250630
 
+#250704
+from pathlib import Path
+import osmnx as ox
+import geopandas as gpd
+import pandas as pd
+
+# List of cities
 cities = [
     "Dresden, Germany",
     "Senica, Slovakia",
@@ -204,32 +228,73 @@ cities = [
     "Jablonec nad Nisou, Czech Republic"
 ]
 
+# Output directory
 output_dir = Path("underground_streams_gpkg")
 output_dir.mkdir(exist_ok=True)
 
-valid_types = ["stream", "drain", "river", "canal"] # Define valid waterway types for underground streams
+# Store data from all cities
+all_data = []
 
+# Process each city
 for city in cities:
-    city_slug = city.split(",")[0].lower().replace(" ", "_")
-    boundary = ox.geocode_to_gdf(city)
-    gdf = ox.features_from_place(city, {"waterway": True})
-    lines = gdf[gdf.geometry.type == "LineString"].copy()
+    city_name = city.split(",")[0].strip()
 
-    underground = lines[
+    # name override
+    name_overrides = {
+    "Jablonec nad Nisou": "Jablonec",
+    "Poznań": "Poznan"}
+    city_name = name_overrides.get(city_name, city_name)
+
+
+    city_slug = city_name.lower().replace(" ", "_")
+    
+    print(f"Processing {city_name}...")
+
+    # get city boundary
+    boundary = ox.geocode_to_gdf(city)
+
+    # fetch waterway features
+    water_features = ox.features_from_place(city, {"waterway": True})
+    water_features = water_features[water_features.geometry.type.isin(["LineString", "MultiLineString"])]
+
+    # ensure required columns exist
+    for col in ["tunnel", "covered", "location", "layer", "waterway"]:
+        if col not in water_features.columns:
+            water_features[col] = None
+
+    layer_str = water_features["layer"].astype(str)
+
+    # filter for underground streams 
+    underground = water_features[
         (
-            lines.get("tunnel").notna() |
-            (lines.get("covered") == "yes") |
-            (lines.get("location") == "underground")
+            water_features["tunnel"].isin(["yes", "culvert"]) |
+            water_features["covered"].isin(["yes", "true", "1"]) |
+            layer_str.isin(["-1", "-2"])
         ) &
-        (lines.get("waterway").isin(valid_types))
+        water_features["waterway"].notna()
     ].copy()
 
-    underground.to_file(output_dir / f"{city_slug}_underground_streams.gpkg", driver="GPKG")
+    underground["City"] = city_name  # Add city info
 
-    print(f"\n{city}")
-    for col in ["waterway", "tunnel", "covered", "location"]:
-        if col in underground.columns:
-            counts = underground[col].value_counts(dropna=True)
-            if not counts.empty:
-                print(f"{col}:\n{counts.to_string()}\n")
+    all_data.append(underground)
 
+# merge
+all_underground = gpd.GeoDataFrame(pd.concat(all_data, ignore_index=True))
+all_underground = all_underground[all_underground.geometry.notnull()]
+
+summary = all_underground.groupby(["City", "waterway"]).size().unstack(fill_value=0)
+print("\nFeature count per city per waterway type:\n")
+print(summary)
+
+all_underground.to_file("data/stream_geometry/all_blue.gpkg", driver="GPKG", layer = "underground")
+
+# 250708
+dresdenstream = gpd.read_file("data/Dresden_water/stream.gpkg", driver="GPKG")
+print(dresdenstream["rohr_erl"].unique())
+
+#>>> print(dresdenstream["rohr_erl"].unique())
+#['oberirdisch, aber überdeckt (z.B. Brücke, Bewuchs)' 'offen' 'verrohrt' 'durch Bauwerk als offenes Gewässer']
+
+# still need to add this Dresden official data as stream geometry. 
+# It covers more watercourses. Still need to check which types should be included. 
+# But not now. We do it after all four cities verified the stream geometry data.
