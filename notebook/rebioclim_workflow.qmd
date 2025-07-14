@@ -1,0 +1,13 @@
+---
+title: "ReBioClim analytical workflow collaboration notebook"
+format: html
+---
+
+# prepare stream geometry
+planned workflow: 
+- all osm waterway
+- all osm stream
+- Dresden watercourse data replaced (provided by Dresden-municipality-Anna)
+- explode and remove the overlapped
+- only keep
+
