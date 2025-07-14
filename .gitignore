@@ -1,4 +1,6 @@
 data/
 output/
 unused/
+scripts/.DS_Store
+.DS_Store
 cache/
