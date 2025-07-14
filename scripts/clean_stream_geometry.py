@@ -298,3 +298,44 @@ print(dresdenstream["rohr_erl"].unique())
 # still need to add this Dresden official data as stream geometry. 
 # It covers more watercourses. Still need to check which types should be included. 
 # But not now. We do it after all four cities verified the stream geometry data.
+
+
+# 250709
+# # create 100m buffer 
+
+# clean 100m stream segments
+stream100 = gpd.read_file("data/stream_segments/stream_segments_100m_with_attrs.gpkg",
+                           layer="segments_100m_with_attrs", driver="GPKG")
+cityboundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg", driver = "GPKG")
+cityboundary = cityboundary.to_crs(stream100.crs)
+stream100_within_boundary = gpd.clip(stream100, cityboundary)
+stream100_within_boundary["length"] = stream100_within_boundary.geometry.length
+
+stream100_within_boundary["length"].hist() 
+
+print(len(stream100_within_boundary))
+
+stream100_segments_around100 = stream100_within_boundary[(stream100_within_boundary["length"] >= 99) & (stream100_within_boundary["length"] <= 101)].copy()
+print(len(stream100_segments_around100))
+
+
+# removed overlapped
+stream100_segments_around100["geom_wkb"] = stream100_segments_around100.geometry.apply(lambda g: g.wkb)
+stream100_segments_clean = stream100_segments_around100.sort_values("geom_wkb").drop_duplicates("geom_wkb")
+stream100_segments_clean = stream100_segments_clean.drop(columns="geom_wkb").reset_index(drop=True)
+
+print(len(stream100_segments_clean))
+
+
+
+stream100_segments_clean["segment_id"] = range(1, len(stream100_segments_clean)+1)
+
+
+
+stream100_segments_clean.to_file("data/stream_geometry/stream100_cleaned.gpkg", driver="GPKG")
+
+
+
+print(len(stream100_segments_clean))
+
+print(stream100_segments_clean.crs)
