@@ -1,5 +1,4 @@
 ---
-title: "ReBioClim workflow collaboration notebook"
+title: "ReBioClim analytical workflow collaboration notebook"
 format: html
 ---
-

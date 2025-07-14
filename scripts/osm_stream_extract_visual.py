@@ -43,26 +43,38 @@ target_crs = "EPSG:4326"
 for city, filepath in city_files.items():
     for layer in layers:
         gdf = gpd.read_file(filepath, layer=layer)
-        gdf = gdf.to_crs(target_crs)  # 统一投影
+        gdf = gdf.to_crs(target_crs)  
         gdf["City"] = city
         merged[layer].append(gdf)
 
 # merge
-stream = gpd.GeoDataFrame(pd.concat(merged["stream"], ignore_index=True), crs=target_crs)
 waterways = gpd.GeoDataFrame(pd.concat(merged["waterways"], ignore_index=True), crs=target_crs)
 waterbodies = gpd.GeoDataFrame(pd.concat(merged["waterbodies"], ignore_index=True), crs=target_crs)
 
 output_path = "data/stream_geometry/combined_stream_geometry.gpkg"
-stream.to_file(output_path, layer="stream", driver="GPKG")
 waterways.to_file(output_path, layer="waterways", driver="GPKG")
 waterbodies.to_file(output_path, layer="waterbodies", driver="GPKG")
 
-#
+
+
+# 0630 update
 import geopandas as gpd
 gpkg_path = "data/stream_geometry/combined_stream_geometry.gpkg"
+waterways = gpd.read_file(gpkg_path, layer="waterways")
 
-streams = gpd.read_file(gpkg_path, layer="stream")
-print(len(streams))
+# exclude elbe and warta rivers 
+stream_noew = waterways[~waterways["name"].isin(["Elbe", "Warta"])].copy()
+
+#exclde flass = drain, or flass= canal 
+stream_noew_nodc = stream_noew[~stream_noew["fclass"].isin(["drain", "canal"])].copy()
+
+
+print(len(stream_noew_nodc) )
+print(len(stream_noew))
+
+stream_noew.to_file(gpkg_path, layer="stream_no_elbe_warta", driver="GPKG")
+stream_noew_nodc.to_file(gpkg_path, layer="stream_no_elbe_warta_drain_canal", driver="GPKG")
+
 named = streams[streams["name"].notna() & (streams["name"].str.strip() != "")].copy()
 unnamed = streams[streams["name"].isna() | (streams["name"].str.strip() == "")].copy()
 

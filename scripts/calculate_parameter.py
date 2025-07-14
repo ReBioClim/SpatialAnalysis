@@ -1,64 +1,82 @@
-
 import geopandas as gpd
+import rasterio
+from rasterio.mask import mask
+import numpy as np
 import pandas as pd
+from shapely.geometry import mapping
+from tqdm import tqdm
 from shapely.geometry import LineString
-
-city_name = "Dresden"
-grids = gpd.read_file(f"data/fishnet_{city_name}.gpkg") 
-streams = gpd.read_file(f"data/stream_geometry/{city_name}_combined_clean_nopt.gpkg")
-
-##############0528
-# calculate impervious cover for each grid
-city_name = "Dresden"
-grids = gpd.read_file(f"data/fishnet_{city_name}.gpkg") 
-impervious = gpd.read_file("data/ready/Dresden/Sealing/sealing.gpkg")
-# CHECK FIELDS IN IMPERVIOUS DATA]
-print(impervious.columns)
-
-# check unique values in the versiegl_kl field
-print(impervious["versiegl_kl"].unique())
-print(impervious["deskn1"].unique())
-
-
-# remove the data where field deskn1 =0 data
-impervious = impervious[impervious["deskn1"] != 0]
-print(impervious.crs)
-
-#plot the impervious data
+from shapely.ops import linemerge, unary_union, split
 import matplotlib.pyplot as plt
 
-impervious.plot(color="darkgrey")
-plt.title('Impervious surface')
-plt.axis("off")
-plt.show()
-
-# create grid_id and calculate impervious area for each grid
-grids["grid_id"] = grids.index
-print(grids.head())
-
-impervious_intersections = gpd.overlay(grids, impervious, how='intersection')
-print(impervious_intersections.head())
-
-impervious_intersections.plot()
-plt.show()
-
-impervious_intersections["impervious_area"] = impervious_intersections.geometry.area
-impervious_area_sum = impervious_intersections.groupby("grid_id")["impervious_area"].sum()
-print(impervious_area_sum.head())
-grids["impervious_area"] = grids["grid_id"].map(impervious_area_sum)
-grids["impervious_area"] = grids["impervious_area"].fillna(0)
-grids["impervious_cover"] = grids["impervious_area"] / 10000
-grids["impervious_cover"] = grids["impervious_cover"].clip(upper=1)
 
 
-grids.plot(column="impervious_cover", legend=True)
-plt.title("Impervious Cover")
-plt.axis("off")
-plt.show()
+# 250708
 
-# Save the grids with impervious cover
-impervious_intersections.to_file(f"{city_name}_impervious.gpkg", driver="GPKG")
-grids.to_file(f"{city_name}_grid_impervious.gpkg", driver="GPKG")
+
+
+##############
+# calculate impervious cover, 100m stream length + 100m buffer
+
+
+
+
+
+
+# land cover
+# data source: ESA worldcover 10m
+# https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v100
+worldcover_legend = {
+    10: {"color": "#006400", "label": "Tree cover"},
+    20: {"color": "#ffbb22", "label": "Shrubland"},
+    30: {"color": "#ffff4c", "label": "Grassland"},
+    40: {"color": "#f096ff", "label": "Cropland"},
+    50: {"color": "#fa0000", "label": "Built-up"},
+    60: {"color": "#b4b4b4", "label": "Bare / sparse vegetation"},
+    70: {"color": "#f0f0f0", "label": "Snow and ice"},
+    80: {"color": "#0064c8", "label": "Permanent water bodies"},
+    90: {"color": "#0096a0", "label": "Herbaceous wetland"},
+    95: {"color": "#00cf75", "label": "Mangroves"},
+    100: {"color": "#fae6a0", "label": "Moss and lichen"}
+}
+
+landcover = rasterio.open("data/landcover/ESA_landcover_all.tif")
+print(landcover.crs)
+
+
+stream100_buffer = stream100_buffer.to_crs(landcover.crs)
+
+# exact 50 Built-up area as impervious area
+# calculate the impervious cover per buffer
+
+def get_impervious_ratio(geometry, raster, class_value=50):
+    try:
+        geom = [mapping(geometry)]
+
+        out_image, _ = mask(dataset=raster, shapes=geom, crop=True)
+        data = out_image[0]  
+
+        valid_pixels = data[data != raster.nodata]
+
+        if valid_pixels.size == 0:
+            return 0.0  
+
+        impervious_count = np.sum(valid_pixels == class_value)
+        return impervious_count / valid_pixels.size
+
+    except Exception as e:
+        print(f"Error at geometry: {e}")
+        return np.nan
+
+from tqdm import tqdm
+tqdm.pandas()  
+
+stream100_buffer["impervious_ratio"] = stream100_buffer["geometry"].progress_apply(
+    lambda geom: get_impervious_ratio(geom, landcover)
+)
+
+print(stream100_buffer[["segment_id", "impervious_ratio"]].head())
+stream100_buffer.to_file("data/stream100_buffer_with_impervious.gpkg", driver="GPKG")
 
 ##############
 # calculate slope for each grid
