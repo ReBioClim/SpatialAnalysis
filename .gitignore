@@ -3,3 +3,5 @@ data/
 output/
 unused/
 cache/
+.DS_Store
+.vscode/settings.json
