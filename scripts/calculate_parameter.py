@@ -51,20 +51,16 @@ stream100_buffer = stream100_buffer.to_crs(landcover.crs)
 
 def get_impervious_ratio(geometry, raster, class_value=50):
     try:
-        # 将矢量 polygon 转换为 GeoJSON 格式
         geom = [mapping(geometry)]
 
-        # 从 raster 中裁剪这个 polygon 覆盖区域
         out_image, _ = mask(dataset=raster, shapes=geom, crop=True)
-        data = out_image[0]  # 取第一波段（只有一层）
+        data = out_image[0]  
 
-        # 筛掉 nodata 像素
         valid_pixels = data[data != raster.nodata]
 
         if valid_pixels.size == 0:
-            return 0.0  # 区域内全是 nodata
+            return 0.0  
 
-        # 计算 impervious 像素占比
         impervious_count = np.sum(valid_pixels == class_value)
         return impervious_count / valid_pixels.size
 
@@ -73,7 +69,7 @@ def get_impervious_ratio(geometry, raster, class_value=50):
         return np.nan
 
 from tqdm import tqdm
-tqdm.pandas()  # 添加进度条支持
+tqdm.pandas()  
 
 stream100_buffer["impervious_ratio"] = stream100_buffer["geometry"].progress_apply(
     lambda geom: get_impervious_ratio(geom, landcover)
