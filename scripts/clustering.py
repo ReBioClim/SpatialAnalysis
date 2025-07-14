@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
-features = grids[["sinuosity", "building_cover", "green_cover"]].copy()
+features = grids[["sinuosity", "impervious_cover", "green_cover"]].copy()
 features = features.fillna(0)
 
 # standardise
@@ -47,3 +47,7 @@ print(centroids)
 # inverse transform the centroids to get the original scale
 centroids_original = scaler.inverse_transform(centroids)
 print(centroids_original)
+#[[1.03344644 0.41445571 0.19419281]
+# [1.03220476 0.08459063 0.13746313]
+# [1.48306881 0.15034512 0.26008053]
+# [1.03011376 0.13247988 0.89955312]]
