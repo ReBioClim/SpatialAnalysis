@@ -1,7 +1,4 @@
-data/
-.Rproj.user
-output/
-unused/
 cache/
 .DS_Store
+settings.json
 .vscode/settings.json
