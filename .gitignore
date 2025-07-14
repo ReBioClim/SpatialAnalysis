@@ -1,2 +1,5 @@
 data/
 .Rproj.user
+output/
+unused/
+cache/
