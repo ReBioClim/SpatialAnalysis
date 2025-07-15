@@ -7,6 +7,8 @@ from shapely.ops import linemerge
 from osmnx._overpass import _overpass_request
 import folium
 from folium.features import DivIcon
+from pathlib import Path
+
 
 # city info
 #place_name = "Dresden, Germany"                                # to change city name
@@ -120,7 +122,6 @@ streams_clean.to_file("streams_lines_only.gpkg", driver="GPKG")
 
 ######0509&0511 explode stream multilinestring→single linestring
 ## still need to do, check if there are any duplicates
-import geopandas as gpd
 
 city_name = "Dresden"
 multiline = gpd.read_file(f"streams_{city_name}_multi.gpkg")
@@ -169,7 +170,6 @@ streams_only = gpd.read_file(streams_fp).to_crs(target_crs)
 tags_culvert_drain = {
     "waterway": ["drain", "ditch"],
     "tunnel":   ["culvert"],
-    #"man_made": ["culvert", "drain"]
 }
 
 tags_water = {
@@ -222,7 +222,6 @@ line_union = combined[
 if line_union.is_empty:
     combined_clean = combined.copy()
 else:
-    # 2) 
     def keep_feature(geom):
         if geom.geom_type in ("Polygon", "MultiPolygon"):
             return geom.intersects(line_union)   # only keep polygons that intersect with the line_union
@@ -249,3 +248,23 @@ dropped_pts = len(combined_clean) - len(combined_nopt)
 # nopint
 final_fp = os.path.join(out_dir, f"{city_name}_combined_clean_nopt.gpkg")
 combined_nopt.to_file(final_fp, driver="GPKG")
+
+# merge into one allblue geometry
+cities = ["Dresden", "Senica", "Poznan", "Jablonec"]
+
+base_path = Path("data/stream_geometry/archived")
+
+target_crs = "EPSG:4326"
+
+gdfs = []
+
+for city in cities:
+    file_path = base_path / f"{city}_combined_clean_nopt.gpkg"
+    gdf = gpd.read_file(file_path)
+    gdf = gdf.to_crs(target_crs)  
+    gdf["City"] = city
+    gdfs.append(gdf)
+
+combined_gdf = gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True), crs=target_crs)
+
+combined_gdf.to_file("allblue.gpkg", driver="GPKG")

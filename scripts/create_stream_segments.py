@@ -58,12 +58,8 @@ for line in merged_lines:
     mp = MultiPoint(cut_pts)
 
     snapped_line = snap(line, mp, tolerance=1e-6)
-    try:
-        split_result = split(snapped_line, mp)
-        segments.extend(split_result.geoms)
-    except Exception as e:
-        print(f"Failed to split line of length {line.length}: {e}")
-        segments.append(line)  # fallback
+    split_result = split(snapped_line, mp)
+    segments.extend(split_result.geoms)
 
 
 gdf = gpd.GeoDataFrame(geometry=segments, crs=streamall.crs)
@@ -84,8 +80,6 @@ segment_with_attrs.to_file("data/stream_segments/streamall_segments_100m_with_at
 
 
 # 250709
-# # create 100m buffer 
-
 # clean 100m stream segments
 stream100 = gpd.read_file("data/stream_segments/streamall_segments_100m_with_attrs.gpkg",driver="GPKG")
 cityboundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg", driver = "GPKG")

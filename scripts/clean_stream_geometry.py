@@ -10,29 +10,9 @@ from geopandas.tools import sjoin
 
 
 # 250630 following osm_stream_extract.py, the api stream data is more complete (with complete stream/drain/ditch included)
-# merge into one allblue geometry
-cities = ["Dresden", "Senica", "Poznan", "Jablonec"]
-
-base_path = Path("data/stream_geometry/archived")
-
-target_crs = "EPSG:4326"
-
-gdfs = []
-
-for city in cities:
-    file_path = base_path / f"{city}_combined_clean_nopt.gpkg"
-    gdf = gpd.read_file(file_path)
-    gdf = gdf.to_crs(target_crs)  
-    gdf["City"] = city
-    gdfs.append(gdf)
-
-combined_gdf = gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True), crs=target_crs)
-
-combined_gdf.to_file("allblue.gpkg", driver="GPKG")
-
 
 # if the allblue line - waterway = "drain" "ditch",  and it is not connected to any other waterway or allblue polygon , then it should be removed
-allblue = gpd.read_file("allblue.gpkg")
+allblue = gpd.read_file("data/stream_geometry/allblue.gpkg")
 
 allblue_lines = allblue[allblue.geometry.type == "LineString"].copy()
 allblue_polygons = allblue[allblue.geometry.type == "Polygon"].copy()
