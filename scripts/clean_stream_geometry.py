@@ -154,62 +154,6 @@ print(len(streamlines), len(riverlines), len(otherwaterways), len(waterpolygons)
 
 #######
 
-allblue = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "waterway")
-allblue = allblue.to_crs("EPSG:4326")  # convert back to WGS84
-streamlines = allblue[allblue["waterway"] == "stream"].copy()
-riverlines = allblue[allblue["waterway"] == "river"].copy()
-otherwaterways = allblue[~allblue["waterway"].isin(["stream", "river"])].copy()
-underground = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "underground")
-waterpolygons = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "waterbody")
-
-print(underground.crs)
-
-underground_intersecting = underground[underground.intersects(allblue.union_all())]
-
-# map center
-city_boundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg")
-catchment = gpd.read_file("data/catchment/intersected_catchments.gpkg")
-center = city_boundary.geometry.unary_union.centroid
-
-m = folium.Map(location=[center.y, center.x], zoom_start=7, tiles="OpenStreetMap", control=False)
-folium.TileLayer("CartoDB positron").add_to(m)
-
-# 1. City boundary
-folium.GeoJson(city_boundary, name="City Boundaries",
-               style_function=lambda x: {"color": "indianred", "weight": 2, "fillOpacity": 0.05}).add_to(m)
-
-# 2. Catchment
-folium.GeoJson(catchment, name="Catchments",
-               style_function=lambda x: {"color": "gold", "weight": 1, "fillOpacity": 0.05}).add_to(m)
-
-# 3. Stream
-folium.GeoJson(streamlines, name="Streams",
-               style_function=lambda x: {"color": "royalblue", "weight": 4}).add_to(m)
-
-# 4. River
-folium.GeoJson(riverlines, name="River lines",
-               style_function=lambda x: {"color": "cyan", "weight": 4,"opacity": 0.5}).add_to(m)
-
-# 5. All other waterways
-folium.GeoJson(otherwaterways, name="Other waterways(ditch,drain,canal,etc.)",
-               style_function=lambda x: {"color": "darkturquoise", "weight": 3}).add_to(m)
-
-# 6. Underground
-folium.GeoJson(underground_intersecting, name="Underground (tunnel,culvert)",
-               style_function=lambda x: {"color": "palevioletred", "weight": 3,"opacity": 0.5 }).add_to(m)
-
-
-# 7. All waterbodies
-folium.GeoJson(waterpolygons, name="Waterbodies",
-               style_function=lambda x: {
-                   "color": "lightblue",   "fillColor": "lightblue", "weight": 1,  
-                     "fillOpacity": 0.8  }).add_to(m)
-
-
-folium.LayerControl(collapsed=False).add_to(m)
-
-m.save("all_cities_stream_map1.2.html")
-
 
 ## underground waterways
 # there was another old version 250630
@@ -297,7 +241,6 @@ print(dresdenstream["rohr_erl"].unique())
 
 # still need to add this Dresden official data as stream geometry. 
 # It covers more watercourses. Still need to check which types should be included. 
-# But not now. We do it after all four cities verified the stream geometry data.
 
 
 # 250709
@@ -339,3 +282,53 @@ stream100_segments_clean.to_file("data/stream_geometry/stream100_cleaned.gpkg", 
 print(len(stream100_segments_clean))
 
 print(stream100_segments_clean.crs)
+
+# 20250715
+# replace Dresden data only, keep the rest stream data as it is
+
+dresdenstream = gpd.read_file("data/Dresden_water/stream.gpkg", driver="GPKG")
+print(dresdenstream["rohr_erl"].unique())
+print(dresdenstream.crs)
+print(dresdenstream.geometry.name)  
+
+#['oberirdisch, aber überdeckt (z.B. Brücke, Bewuchs)' 'offen' 'verrohrt' 'durch Bauwerk als offenes Gewässer']
+
+#oberirdisch, aber Ã¼berdeckt (z.B. Brücke, Bewuchs): above ground, but covered (e.g., bridge, vegetation)
+#offen:open
+#verrohrt: piped (enclosed in a pipe)
+#durch Bauwerk als offenes GewÃ¤sser: open watercourse through a structure
+
+# change the fieldname "gewna" as "name", create column city with value "Dresden", 
+# create a column "tunnel", when field rohr_erl = verrohrt, add verrohrt
+
+dresdenstream = dresdenstream.rename(columns={'gewna': 'name'})
+
+dresdenstream['City'] = 'Dresden'
+
+# assign 'verrohrt' where 'rohr_erl' == 'verrohrt', else keep as empty
+dresdenstream['tunnel'] = dresdenstream['rohr_erl'].apply(
+    lambda x: 'verrohrt' if x == 'verrohrt' else None
+)
+dresdenstream["id_d"] = range(1, len(dresdenstream)+1)
+
+
+print(dresdenstream.columns.unique())
+dresdenstream.to_file("data/Dresden_water/dresdenstream.gpkg", driver="GPKG")
+dresdenstream = dresdenstream[["name", "City", "rohr_erl", "tunnel", "id_d", "geometry"]]
+
+# select allblue when waterway is not river, and city is not dresden
+allblue = gpd.read_file("data/stream_geometry/allblue_100plus.gpkg")
+streamlines = allblue[~allblue["waterway"].isin(["river"])].copy()
+streamlines_other3 = streamlines[~streamlines["City"].isin(["Dresden"])].copy()
+print(streamlines_other3.crs)
+print(dresdenstream.crs)
+
+streamall = pd.concat([dresdenstream, streamlines_other3], ignore_index=True)
+streamall = gpd.GeoDataFrame(streamall, geometry='geometry')
+
+streamall.set_crs(dresdenstream.crs, inplace=True)
+
+print(streamall.columns.unique())
+print(streamall.crs)
+
+streamall.to_file("data/stream_geometry/streamall.gpkg",driver="GPKG")
