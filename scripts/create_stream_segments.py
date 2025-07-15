@@ -9,82 +9,18 @@ from tqdm import tqdm
 from scipy.spatial import cKDTree
 from shapely.ops import unary_union
 
+streamall= gpd.read_file("data/stream_geometry/streamall.gpkg",driver="GPKG")
 
-
-# create stream segments
-# 250626 & 250703
-# previous method create not continuous lines when there is a substream. 
-# a bettter way is probably to identify the main stream
-# now try the networkx method to find the longest path in the stream network
-
-file1 = gpd.read_file("data/stream_geometry/allblue_cleaned.gpkg")
-file2 = gpd.read_file("data/stream_geometry/allblue_100plus.gpkg")
-
-waterbody = file1[file1.geometry.type == "Polygon"].copy()
-waterbody = waterbody.to_crs(epsg=25833)
-waterway = file2
-
-waterbody.to_file("data/stream_geometry/all_blue.gpkg", layer= "waterbody", driver= "GPKG")
-waterway.to_file("data/stream_geometry/all_blue.gpkg", layer= "waterway", driver= "GPKG")
-
-print(waterbody.crs)
-print(waterway.crs)
-waterbody = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer="waterbody")
-waterway = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer="waterway")
-
-stream = waterway[waterway["waterway"] == "stream"].copy()
-print(stream.crs)
-# check the geometry type 
-print(stream.geometry.type.unique()) # multilinestring
-# check the mimum and maximum length of the stream lines
-print(stream.geometry.length.min()) # 100.4
-print(stream.geometry.length.max()) # 85003
-print(len(stream))
 
 boundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg")
 boundary = boundary.to_crs(epsg= 25833)
 
-stream.plot()
-plt.show()
-
-# a try: when the stream passing through a waterbody, the waterbody should also be seen as part of stream
-# but i decided to skip this process! there are waterbody data missing from raw osm data, so never complete
-print(waterbody.crs)
-print(stream.crs)
-
-endpoints = []
-for geom in stream.geometry:
-    if geom.is_empty:
-        continue
-    for line in geom.geoms:  # 处理 MultiLineString
-        start = Point(line.coords[0])
-        end = Point(line.coords[-1])
-        endpoints.extend([start, end])
-
-endpoint_gdf = gpd.GeoDataFrame(geometry=endpoints, crs=stream.crs)
-
-tolerance = 20
-endpoint_buffer = endpoint_gdf.buffer(tolerance)
-endpoint_buffer_gdf = gpd.GeoDataFrame(geometry=endpoint_buffer, crs=stream.crs)
-joined = gpd.sjoin(waterbody, endpoint_buffer_gdf, how="inner", predicate="intersects")
-
-connected = joined.groupby(joined.index).size()
-
-double_connected_ids = connected[connected >= 2].index
-double_connected_polygons = waterbody.loc[double_connected_ids].copy()
-print(len(double_connected_polygons))
-double_connected_polygons.to_file("data/stream_geometry/double_connected_waterbody.gpkg", driver="GPKG")
 
 ##########
 #####################
 
 
-# explode
-stream = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer="waterway")
-stream = stream[stream["waterway"] == "stream"].copy()
-print(len(stream))
-
-stream_exploded = stream.explode(ignore_index=True)
+stream_exploded = streamall.explode(ignore_index=True)
 
 
 # merge the lines that connect 
@@ -105,8 +41,8 @@ for line in merged_lines:
     points = [line.interpolate(d) for d in distances]
     cut_points.extend(points)
 
-points_gdf = gpd.GeoDataFrame(geometry=cut_points, crs=stream.crs)
-points_gdf.to_file("data/stream_geometry/stream_cut_points.gpkg", layer="cut_points_100m", driver="GPKG")
+points_gdf = gpd.GeoDataFrame(geometry=cut_points, crs=streamall.crs)
+points_gdf.to_file("data/stream_segments/streamall_cut_points.gpkg", layer="cut_points_100m", driver="GPKG")
 
 
 # create segments with snap
@@ -130,19 +66,59 @@ for line in merged_lines:
         segments.append(line)  # fallback
 
 
-gdf = gpd.GeoDataFrame(geometry=segments, crs=stream.crs)
-gdf.to_file("data/stream_geometry/stream_segments_100m_snapped.gpkg", layer="segments_100m", driver="GPKG")
+gdf = gpd.GeoDataFrame(geometry=segments, crs=streamall.crs)
+gdf.to_file("data/stream_segments/streamall_segments_100m_snapped.gpkg", layer="segments_100m", driver="GPKG")
 
 # add original stream attributes to new segments
 stream_exploded = stream_exploded.reset_index().rename(columns={"index": "orig_index"})
 stream_exploded["geometry"] = stream_exploded.geometry.buffer(0.01)  # small buffer for reliable overlay
 
-segment_gdf = gpd.read_file("data/stream_geometry/stream_segments_100m_snapped.gpkg", layer="segments_100m")
+segment_gdf = gpd.read_file("data/stream_segments/streamall_segments_100m_snapped.gpkg", layer="segments_100m")
 
 segment_with_attrs = gpd.sjoin(segment_gdf, stream_exploded, how="left", predicate="intersects")
 segment_with_attrs.drop(columns=["index_right"], inplace=True)
 
-segment_with_attrs.to_file("data/stream_geometry/stream_segments_100m_with_attrs.gpkg",
-                           layer="segments_100m_with_attrs", driver="GPKG")
+segment_with_attrs.to_file("data/stream_segments/streamall_segments_100m_with_attrs.gpkg",driver="GPKG")
 
 
+
+
+# 250709
+# # create 100m buffer 
+
+# clean 100m stream segments
+stream100 = gpd.read_file("data/stream_segments/streamall_segments_100m_with_attrs.gpkg",driver="GPKG")
+cityboundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg", driver = "GPKG")
+cityboundary = cityboundary.to_crs(stream100.crs)
+stream100_within_boundary = gpd.clip(stream100, cityboundary)
+stream100_within_boundary["length"] = stream100_within_boundary.geometry.length
+
+stream100_within_boundary["length"].hist() 
+stream100_within_boundary.to_file("data/stream_geometry/stream100_within_boundary.gpkg", driver="GPKG")
+
+print(len(stream100_within_boundary))
+
+stream100_segments_around100 = stream100_within_boundary[(stream100_within_boundary["length"] >= 99) & (stream100_within_boundary["length"] <= 101)].copy()
+print(len(stream100_segments_around100))
+
+
+# removed overlapped
+stream100_segments_around100["geom"] = stream100_segments_around100.geometry.apply(lambda g: g.wkb)
+stream100_segments_clean = stream100_segments_around100.sort_values("geom").drop_duplicates("geom")
+stream100_segments_clean = stream100_segments_clean.drop(columns="geom").reset_index(drop=True)
+
+print(len(stream100_segments_clean)) # actually not quite sure why there were so many overlaps
+
+
+
+stream100_segments_clean["segment_id"] = range(1, len(stream100_segments_clean)+1)
+
+
+
+stream100_segments_clean.to_file("data/stream_geometry/streamall100_cleaned.gpkg", driver="GPKG")
+
+
+
+print(len(stream100_segments_clean)) # 5745
+
+print(stream100_segments_clean.crs)
