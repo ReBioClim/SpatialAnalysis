@@ -87,88 +87,58 @@ combined.to_file(gpkg_path, layer="stream_named_dissolved", driver="GPKG")
 
 # visualize!!!!!!
 
+allblue = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "waterway")
+allblue = allblue.to_crs("EPSG:4326")  # convert back to WGS84
+streamlines = allblue[allblue["waterway"] == "stream"].copy()
+riverlines = allblue[allblue["waterway"] == "river"].copy()
+otherwaterways = allblue[~allblue["waterway"].isin(["stream", "river"])].copy()
+underground = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "underground")
+waterpolygons = gpd.read_file("data/stream_geometry/all_blue.gpkg", layer= "waterbody")
 
-gpkg_path = "data/stream_geometry/combined_stream_geometry.gpkg"
-stream = gpd.read_file(gpkg_path, layer="stream")
-waterways = gpd.read_file(gpkg_path, layer="waterways")
-waterbodies = gpd.read_file(gpkg_path, layer="waterbodies")
-named_dissolved = gpd.read_file(gpkg_path, layer="stream_named_dissolved")
-city_boundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg")
-catchment = gpd.read_file("data/catchment/intersected_catchments.gpkg")
+print(underground.crs)
 
-
-
-# only keep the columns that are needed to decrease html file size
-keep_cols = ["name", "osm_id", "fclass", "City", "geometry"]
-stream = stream[[col for col in keep_cols if col in stream.columns]]
-waterways = waterways[[col for col in keep_cols if col in waterways.columns]]
-waterbodies = waterbodies[[col for col in keep_cols if col in waterbodies.columns]]
-named_dissolved = named_dissolved[[col for col in keep_cols if col in named_dissolved.columns]]
-
-
-focus_streams = {
-    "Dresden": "Geberbach",
-    "Jablonec": "Bílá Nisa",
-    "Poznan": "Piaśnica",
-    "Senica": "Teplica"
-}
-
-# all focus_stream 
-focus_gdfs = []
-for city, name in focus_streams.items():
-    match = stream[(stream["City"] == city) & (stream["name"] == name)]
-    if not match.empty:
-        focus_gdfs.append(match)
-
-focus_all = gpd.GeoDataFrame(pd.concat(focus_gdfs, ignore_index=True), crs=stream.crs)
+underground_intersecting = underground[underground.intersects(allblue.union_all())]
 
 # map center
+city_boundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg")
+catchment = gpd.read_file("data/catchment/intersected_catchments.gpkg")
 center = city_boundary.geometry.unary_union.centroid
+
 m = folium.Map(location=[center.y, center.x], zoom_start=7, tiles="OpenStreetMap", control=False)
 folium.TileLayer("CartoDB positron").add_to(m)
 
 # 1. City boundary
 folium.GeoJson(city_boundary, name="City Boundaries",
-               style_function=lambda x: {"color": "indianred", "weight": 4, "fillOpacity": 0.05}).add_to(m)
+               style_function=lambda x: {"color": "indianred", "weight": 2, "fillOpacity": 0.05}).add_to(m)
 
 # 2. Catchment
 folium.GeoJson(catchment, name="Catchments",
-               style_function=lambda x: {"color": "gold", "weight": 1, "fillOpacity": 0.15}).add_to(m)
+               style_function=lambda x: {"color": "gold", "weight": 1, "fillOpacity": 0.05}).add_to(m)
 
 # 3. Stream
-folium.GeoJson(stream, name="Stream",
-               style_function=lambda x: {"color": "royalblue", "weight": 2.5}).add_to(m)
+folium.GeoJson(streamlines, name="Streams",
+               style_function=lambda x: {"color": "royalblue", "weight": 4}).add_to(m)
 
-# 4. Waterways
-folium.GeoJson(waterways, name="Waterways",
-               style_function=lambda x: {"color": "lightsteelblue", "weight": 1, "dashArray": "4, 4"}).add_to(m)
+# 4. River
+folium.GeoJson(riverlines, name="River lines",
+               style_function=lambda x: {"color": "cyan", "weight": 4,"opacity": 0.5}).add_to(m)
 
-# 5. Waterbodies
-folium.GeoJson(waterbodies, name="Waterbodies",
-               style_function=lambda x: {"color": "lightblue", "fillColor": "skyblue", "fillOpacity": 0.3}).add_to(m)
+# 5. All other waterways
+folium.GeoJson(otherwaterways, name="Other waterways(ditch,drain,canal,etc.)",
+               style_function=lambda x: {"color": "darkturquoise", "weight": 3}).add_to(m)
 
-# 6. Focus Streams (all 4)
-folium.GeoJson(focus_all, name="Focus Streams",
-               style_function=lambda x: {"color": "navy", "weight": 2.5}).add_to(m)
+# 6. Underground
+folium.GeoJson(underground_intersecting, name="Underground (tunnel,culvert)",
+               style_function=lambda x: {"color": "palevioletred", "weight": 3,"opacity": 0.5 }).add_to(m)
 
-# 7. Name Labels
-name_label_layer = FeatureGroup(name="Name Labels", show=False)
 
-for _, row in named_dissolved.iterrows():
-    if row.geometry.is_empty or row["name"] is None:
-        continue
-    point = row.geometry.centroid
-    folium.Marker(
-        location=[point.y, point.x],
-        icon=DivIcon(
-            icon_size=(150, 20),
-            icon_anchor=(0, 0),
-            html=f'<div style="font-size:9pt; color:lightblue;"><b>{row["name"]}</b></div>',
-        )
-    ).add_to(name_label_layer)
+# 7. All waterbodies
+folium.GeoJson(waterpolygons, name="Waterbodies",
+               style_function=lambda x: {
+                   "color": "lightblue",   "fillColor": "lightblue", "weight": 1,  
+                     "fillOpacity": 0.8  }).add_to(m)
 
-name_label_layer.add_to(m)
 
 folium.LayerControl(collapsed=False).add_to(m)
 
-m.save("all_cities_stream_map.html")
+m.save("all_cities_stream_map1.2.html")
