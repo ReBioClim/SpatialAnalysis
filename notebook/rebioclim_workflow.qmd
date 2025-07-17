@@ -3,27 +3,28 @@ title: "ReBioClim analytical workflow collaboration notebook"
 format: html
 ---
 
+
 # prepare stream geometry (without segments)
 - all osm waterway
-    - from <osm_stream_extract.py>, osm way+relation, both extracted, for all possible tags with stream, much more complete than directly use the waterway=stream data from geofabrick or osmmx
+    - from [`osm_stream_extract.py`](scripts/osm_stream_extract.py), osm way+relation, both extracted, for all possible tags with stream, much more complete than directly use the waterway=stream data from geofabrick or osmmx
     - dissolve the stream where name is the same
     - also add drain, ditch, culvert, river, for complete waterway lines as much as possible
-    - output is <data/stream_geometry/allblue.gpkg>
+    - output is [`data/stream_geometry/allblue.gpkg`](data/stream_geometry/allblue.gpkg)
 - clean stream geometry
-    - <clean_stream_geometry.py>    
-    - from now on, the stream we use is the above <allblue.gpkg> and with its river removed
+    - [`clean_stream_geometry.py`](scripts/clean_stream_geometry.py)    
+    - from now on, the stream we use is the above [`allblue.gpkg`](data/stream_geometry/allblue.gpkg) and with its river removed
     - remove some of "drain" "ditch" when it is not connected to any other waterway or allblue polygon (remove unnecessary stream endings)
     - dissolve the ones with same name
     - merge to continuous lines
     - only keep the lines >=100m (remove the standalone short streams, since it is 100m, it is not considered in our analysis)
 - Dresden watercourse data replaced (provided by Dresden-municipality-Anna)
-    - <clean_stream_geometry.py>  
-    - the output is <data/stream_geometry/streamall.gpkg>
+    - [`clean_stream_geometry.py`](scripts/clean_stream_geometry.py)  
+    - the output is [`data/stream_geometry/streamall.gpkg`](data/stream_geometry/streamall.gpkg)
 
 # create segments
 - 100m segment from WFD? cannot find the datasource for the 100m segmentation. 
     the WFD related values only vary when there is a sub-stream
-- create 100m segments in <create_stream_segments.py>. 
+- create 100m segments in [`create_stream_segments.py`](scripts/create_stream_segments.py). 
     - create points with 100m intervals
         - did not specifically identify the mouth of stream and start from there; sometimes the mouth is a waterbody, so there is always some missing, so I doubt the value of starting from mouth
     - create segments with snap to the point
@@ -31,7 +32,8 @@ format: html
 - only keep the ones with length between [99-101]m
     - when cutting the lines into 100m, the results show there are some minor variations, so 99 to 101 m is still acceptable
 - remove overlaps
-- output is <data/stream_geometry/streamall100_cleaned.gpkg>, n=5745
+- output is [`data/stream_geometry/streamall_segment100.gpkg`](data/stream_geometry/streamall_segment100.gpkg), n=5745
 
-
+# calculate variable
+## variable 1 impervious cover
 

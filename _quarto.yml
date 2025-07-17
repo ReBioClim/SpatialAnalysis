@@ -1,0 +1,12 @@
+project:
+  type: website
+
+format:
+  html:
+    theme: default
+    toc: true
+
+resources:
+  - scripts/
+  - data/
+  - output/
