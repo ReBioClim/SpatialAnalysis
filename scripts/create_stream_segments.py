@@ -8,6 +8,7 @@ from shapely.ops import linemerge, unary_union, split, snap, substring
 from tqdm import tqdm
 from scipy.spatial import cKDTree
 from shapely.ops import unary_union
+import pandas as pd
 
 streamall= gpd.read_file("data/stream_geometry/streamall.gpkg",driver="GPKG")
 
@@ -116,3 +117,28 @@ stream100_segments_clean.to_file("data/stream_geometry/streamall100_cleaned.gpkg
 print(len(stream100_segments_clean)) # 5745
 
 print(stream100_segments_clean.crs)
+
+
+
+# 20250715
+
+stream_segment= gpd.read_file("data/stream_geometry/streamall100_cleaned.gpkg",driver="GPKG")
+print(stream_segment.type)
+exploded = stream_segment.explode(index_parts=True)
+print(exploded.type)
+
+# found there are three linstring to be merged, not sure why there are
+# merge the ones that have same segment_id
+
+merged = exploded.groupby('segment_id').apply(
+    lambda g: pd.concat([
+        g.iloc[0].drop('geometry'),
+        pd.Series({'geometry': g.geometry.iloc[0] if len(g) == 1 else linemerge(unary_union(g.geometry))})
+    ])
+).reset_index(drop=True)
+
+
+
+merged_gdf = gpd.GeoDataFrame(merged, geometry='geometry', crs=exploded.crs)
+
+merged_gdf.to_file("data/stream_segments/streamall_segment100.gpkg", driver="GPKG")
