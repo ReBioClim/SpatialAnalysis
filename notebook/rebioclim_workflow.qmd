@@ -36,4 +36,6 @@ format: html
 
 # calculate variable
 ## variable 1 impervious cover
-
+- data needed: streamall_segment100, ESA worldcover 10m
+- impervious ratio (built-up area / buffer area)
+- [`calculate_impervious.py`](scripts/calculate_impervious.py)

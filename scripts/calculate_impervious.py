@@ -1,22 +1,23 @@
-
 import geopandas as gpd
-import pandas as pd
-from shapely.ops import linemerge, unary_union
 import rasterio
+import rioxarray
+import numpy as np
+import matplotlib.pyplot as plt
 from shapely.geometry import mapping
 from rasterio.mask import mask
-import numpy as np
-
-
-
-
-
 
 ##############
-# calculate impervious cover, 100m stream length + 100m buffer
-stream_segment = gpd.read_file("streamall.gpkg", driver="GPKG")
+# calculate impervious cover, 100m stream length + 100m or 50m buffer
+stream_segment = gpd.read_file("data/stream_segments/streamall_segment100.gpkg", driver="GPKG")
+print(stream_segment.crs)
 
-buffer100 = stream_segment.buffer(50)
+# create buffer and retain segment_id
+buffer = stream_segment.copy()
+buffer["geometry"] = buffer.geometry.buffer(50) # try 100 and 50m
+
+# visualize the buffer
+buffer.plot()
+plt.show()
 
 # land cover
 # data source: ESA worldcover 10m
@@ -35,36 +36,47 @@ worldcover_legend = {
     100: {"color": "#fae6a0", "label": "Moss and lichen"}
 }
 
-landcover = rasterio.open("data/landcover/ESA_landcover_all.tif")
+# original landcover raster (4326)
+landcover_orig = rasterio.open("data/landcover/ESA_landcover_all.tif")
+print(landcover_orig.crs)
+
+# reproject to EPSG:25833 with 10m resolution using rioxarray
+rds = rioxarray.open_rasterio("data/landcover/ESA_landcover_all.tif")
+rds = rds.rio.reproject("EPSG:25833", resolution=10)
+rds.rio.to_raster("data/landcover/ESA_landcover_all_25833_10m.tif")
+
+# read the reprojected raster
+landcover = rasterio.open("data/landcover/ESA_landcover_all_25833_10m.tif")
 print(landcover.crs)
 
+# function to calculate impervious ratio (built-up area / buffer area)
+def get_impervious_ratio(row):
+    geom = row.geometry
+    shapes = [mapping(geom)]
+    
+    try:
+        out_image, _ = mask(dataset=landcover, shapes=shapes, crop=True)
+    except Exception:
+        return 0.0  # handle masks with no overlap
 
-stream100_buffer = stream_segment.to_crs(landcover.crs)
+    data = out_image[0].astype(np.int32)
+    impervious_pixels = np.sum(data == 50)  # class 50 = built-up
+    pixel_area = 100.0  # 10m × 10m
+    builtup_area = impervious_pixels * pixel_area
 
-# exact 50 Built-up area as impervious area
-# calculate the impervious cover per buffer
+    buffer_area = geom.area
+    if buffer_area == 0:
+        return 0.0
 
-def get_impervious_ratio(geometry, raster, class_value=50):
-        geom = [mapping(geometry)]
+    return builtup_area / buffer_area
 
-        out_image, _ = mask(dataset=raster, shapes=geom, crop=True)
-        data = out_image[0]  
+buffer["impervious_ratio"] = buffer.apply(get_impervious_ratio, axis=1)
 
-        valid_pixels = data[data != raster.nodata]
+# attach result back to stream_segment
+stream_segment["impervious_ratio"] = buffer["impervious_ratio"]
 
-        if valid_pixels.size == 0:
-            return 0.0  
+stream_segment[["segment_id", "impervious_ratio", "geometry"]].to_file(
+    "data/variable/impervious_50.gpkg", driver="GPKG")
 
-        impervious_count = np.sum(valid_pixels == class_value)
-        return impervious_count / valid_pixels.size
-
-
-from tqdm import tqdm
-tqdm.pandas()  
-
-stream100_buffer["impervious_ratio"] = stream100_buffer["geometry"].progress_apply(
-    lambda geom: get_impervious_ratio(geom, landcover)
-)
-
-print(stream100_buffer[["segment_id", "impervious_ratio"]].head())
-stream100_buffer.to_file("data/stream100_buffer_with_impervious.gpkg", driver="GPKG")
+# export buffer with impervious ratio
+buffer.to_file("data/variable/stream50_buffer_with_impervious.gpkg", driver="GPKG")
