@@ -22,6 +22,7 @@ format: html
     - the output is [`data/stream_geometry/streamall.gpkg`](data/stream_geometry/streamall.gpkg)
 
 # create segments
+- below is for 100m
 - 100m segment from WFD? cannot find the datasource for the 100m segmentation. 
     the WFD related values only vary when there is a sub-stream
 - create 100m segments in [`create_stream_segments.py`](scripts/create_stream_segments.py). 
@@ -34,8 +35,20 @@ format: html
 - remove overlaps
 - output is [`data/stream_geometry/streamall_segment100.gpkg`](data/stream_geometry/streamall_segment100.gpkg), n=5745
 
+- below is for 500m
+- original idea is we select the smallest unit, as the basis. but now when we move to 500m, how about those 100m segments that cannot be included into any 500m segment?
+    - actually to make the stream linstring connected, i also tried to connect the lines when there are waterbody in between of two segmented lines. but in many cases the waterboday is also not complete data available, then we just connect whenver there are gaps? not reliable either
+- so now, the question is, when some segments are kept in 100m segment data, what should we do for those that cannot be included in any continuous 500m segment?
+- first just try change the script from 100 to 500
+- or we just combine the segments when there are 500m continuous, (5 100m segements connected)
+
 # calculate variable
 ## variable 1 impervious cover
 - data needed: streamall_segment100, ESA worldcover 10m
 - impervious ratio (built-up area / buffer area)
+- [`calculate_impervious.py`](scripts/calculate_impervious.py)
+
+## variable 2 canopy cover
+- data needed: streamall_segment100, ESA worldcover 10m
+- impervious ratio (tree cover area / buffer area)
 - [`calculate_impervious.py`](scripts/calculate_impervious.py)
