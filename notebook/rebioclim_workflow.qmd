@@ -44,11 +44,30 @@ format: html
 
 # calculate variable
 ## variable 1 impervious cover
-- data needed: streamall_segment100, ESA worldcover 10m
+- data needed: streamall_segment100, 100m buffer created for each stream segment, ESA worldcover 10m
 - impervious ratio (built-up area / buffer area)
 - [`calculate_impervious.py`](scripts/calculate_impervious.py)
 
 ## variable 2 canopy cover
-- data needed: streamall_segment100, ESA worldcover 10m
-- impervious ratio (tree cover area / buffer area)
-- [`calculate_impervious.py`](scripts/calculate_impervious.py)
+- data needed: streamall_segment100, 50m buffer created for each stream segment, ESA worldcover 10m
+- canopy cover (tree cover area / buffer area)
+- [`calculate_impervious.py`](scripts/calculate_canopy.py)
+
+## variable 3 green richness and shannon diversity index
+- data needed: streamall_segment100, 150m buffer created for each stream segment, ESA worldcover 10m
+
+## variable 4 land surface temperature
+- data needed: streamall_segment100, 100m buffer created for each stream segment, Ermida GEE code 
+    - Ermida, S.L., Soares, P., Mantas, V., Göttsche, F.-M., Trigo, I.F., 2020. 
+        Google Earth Engine open-source code for Land Surface Temperature estimation from the Landsat series.
+        Remote Sensing, 12 (9), 1471; https://doi.org/10.3390/rs12091471
+    - mean of all LST (30m resolution) in each buffer
+
+## variable 5 sinuosity
+- data needed: streamall_segment300
+- each 100m segment is checked to find a continuous sequence of three connected segments (i.e., previous, current, and next)
+- segments at the beginning (with next two segments), middle (with both previous and next segments), or end (with previous two segments) are retained
+- isolated segments or those without two-directional connections are excluded
+- new 300m segments are created by merging the geometries of the three valid connected segments
+- sinuosity is calculated as (length of merged geometry) / (straight-line distance from start to end point)
+

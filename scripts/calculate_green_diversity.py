@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from shapely.geometry import mapping
 from rasterio.mask import mask
+from collections import Counter
+from skbio.diversity.alpha import shannon
 
 ##############
 # calculate canopy cover, 100m stream length + 100m or 50m buffer
@@ -13,7 +15,7 @@ print(stream_segment.crs)
 
 # create buffer and retain segment_id
 buffer = stream_segment.copy()
-buffer["geometry"] = buffer.geometry.buffer(50) # try 100 and 50m
+buffer["geometry"] = buffer.geometry.buffer(150) 
 
 # visualize the buffer
 buffer.plot()
@@ -49,41 +51,34 @@ rds.rio.to_raster("data/landcover/ESA_landcover_all_25833_10m.tif")
 landcover = rasterio.open("data/landcover/ESA_landcover_all_25833_10m.tif")
 print(landcover.crs)
 
-# function to calculate canopy ratio (tree cover area / buffer area)
-def get_canopy_ratio(row):
-    geom = row.geometry
-    shapes = [mapping(geom)]
-    
-    try:
-        out_image, _ = mask(dataset=landcover, shapes=shapes, crop=True)
-    except Exception:
-        return 0.0  # handle masks with no overlap
+# calculate land cover richness and Shannon diversity index for each buffer zone
 
-    data = out_image[0].astype(np.int32)
-    canopy_pixels = np.sum(data == 10)  # class 10 = tree cover
-    pixel_area = 100.0  # 10m × 10m
-    builtup_area = canopy_pixels * pixel_area
+def calculate_diversity(landcover_raster, buffer_gdf, green_classes=[10, 20, 30, 90, 95]):
+    results = []
+    for idx, row in buffer_gdf.iterrows():
+        geom = [mapping(row['geometry'])]
+        out_image, out_transform = mask(landcover_raster, geom, crop=True)
+        masked_data = out_image[0]
+        masked_data = masked_data[masked_data != landcover_raster.nodata]
+        green_pixels = [val for val in masked_data.ravel() if val in green_classes]
 
-    buffer_area = geom.area
-    if buffer_area == 0:
-        return 0.0
+        if green_pixels:
+            counts = list(Counter(green_pixels).values())
+            richness = len(counts)
+            shannon_index = shannon(counts, base=2)
+        else:
+            richness = 0
+            shannon_index = 0
 
-    return builtup_area / buffer_area
+        results.append({
+            "segment_id": row["segment_id"],
+            "richness_150m": richness,
+            "shannon_150m": shannon_index,
+            "geometry": row["geometry"]
+        })
 
-buffer["canopy_ratio"] = buffer.apply(get_canopy_ratio, axis=1)
+    return gpd.GeoDataFrame(results, geometry="geometry", crs=buffer_gdf.crs)
 
-# attach result back to stream_segment
-stream_segment["canopy_ratio"] = buffer["canopy_ratio"]
-
-# some are over 1, as the pixel size can be slightly bigger than buffer size
-# so replace those bigger than 1 as 1
-stream_segment["canopy_ratio"] = stream_segment["canopy_ratio"].clip(upper=1.0)
-
-
-stream_segment[["segment_id", "canopy_ratio", "geometry"]].to_file(
-    "data/variable/canopy_50.gpkg", driver="GPKG")
-
-# export buffer with canopy ratio
-buffer.to_file("data/variable/stream100_buffer50_with_canopy.gpkg", driver="GPKG")
-
+# Apply function
+diversity_gdf = calculate_diversity(landcover, buffer)
 
