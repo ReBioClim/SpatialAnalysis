@@ -39,8 +39,13 @@ format: html
 - original idea is we select the smallest unit, as the basis. but now when we move to 500m, how about those 100m segments that cannot be included into any 500m segment?
     - actually to make the stream linstring connected, i also tried to connect the lines when there are waterbody in between of two segmented lines. but in many cases the waterboday is also not complete data available, then we just connect whenver there are gaps? not reliable either
 - so now, the question is, when some segments are kept in 100m segment data, what should we do for those that cannot be included in any continuous 500m segment?
-- first just try change the script from 100 to 500
+- first just try change the script from 100 to 500 (and 250)
+    - create new field segment_id_500m
+    - now the ones that are below 500(495?) are excluded
+    - relate the 100mstream with the new 500m, where each 100m segment_id should correspond to the segment_id_500m
+        - if there is no corresponding ones, just NULL
 - or we just combine the segments when there are 500m continuous, (5 100m segements connected)
+
 
 # calculate variable
 ## variable 1 impervious cover
@@ -71,3 +76,19 @@ format: html
 - new 300m segments are created by merging the geometries of the three valid connected segments
 - sinuosity is calculated as (length of merged geometry) / (straight-line distance from start to end point)
 
+
+##  variable 6 crossability
+- data needed: streamall_segment500, bridge+railway+road
+- 
+
+
+## variable 7 accessibility to POI
+- data needed: streamall_segment500, OSM POI
+- 
+
+## variable 8 accessibility to public transport
+- data needed: streamall_segment500, OSM bus/train/tram stop
+- 
+
+## variable 9 visibility
+- data needed: streamall_segment500, CRisp 

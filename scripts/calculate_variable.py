@@ -241,4 +241,4 @@ stream_segment[["segment_id", "lst_mean_100m", "geometry"]].to_file(
 
 
 
-# 6. crossability, 500m stream length + 500m buffer
+# 6. crossability, 500m stream length

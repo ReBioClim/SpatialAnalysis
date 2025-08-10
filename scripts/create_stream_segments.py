@@ -58,7 +58,7 @@ for line in merged_lines:
     cut_pts = [line.interpolate(d) for d in distances]
     mp = MultiPoint(cut_pts)
 
-    snapped_line = snap(line, mp, tolerance=1e-6)
+    snapped_line = snap(line, mp, tolerance=1e-6) # maybe tolerance is too small?
     split_result = split(snapped_line, mp)
     segments.extend(split_result.geoms)
 
