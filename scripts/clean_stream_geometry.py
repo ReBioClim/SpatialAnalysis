@@ -3,10 +3,12 @@ import geopandas as gpd
 from pathlib import Path
 import folium
 import pandas as pd
-from shapely.ops import linemerge, unary_union
+from shapely.ops import linemerge, unary_union, split, snap
 from shapely import union_all
-from shapely.geometry import MultiLineString, LineString, Point
+from shapely.geometry import MultiLineString, LineString, Point, MultiPoint
 from geopandas.tools import sjoin
+import math
+
 
 
 # 250630 following osm_stream_extract.py, the api stream data is more complete (with complete stream/drain/ditch included)
@@ -271,3 +273,117 @@ print(streamall.columns.unique())
 print(streamall.crs)
 
 streamall.to_file("data/stream_geometry/streamall.gpkg",driver="GPKG")
+
+
+#########
+# 20250811 create 500m, 250m segments
+
+streamall = gpd.read_file("data/stream_geometry/streamall.gpkg", driver="GPKG")
+cityboundary = gpd.read_file("data/city_boundaries/combined_city_boundaries.gpkg", driver="GPKG")
+
+stream_exploded = streamall.to_crs("EPSG:25833").explode(ignore_index=True)
+boundary_proj = cityboundary.to_crs("EPSG:25833")
+
+# merge connected lines to continuous lines
+merged_geom = linemerge(unary_union(stream_exploded.geometry))
+print(merged_geom.geom_type)
+merged_lines = list(getattr(merged_geom, "geoms", [merged_geom]))
+
+# build 500 m segments
+segs_500 = []
+for line in merged_lines:
+    if line.length <= 500:
+        segs_500.append(line)
+        continue
+    dists = np.arange(500, line.length, 500)
+    if len(dists) == 0:
+        segs_500.append(line)
+        continue
+    pts = [line.interpolate(float(d)) for d in dists]
+    mp = MultiPoint(pts)
+    snapped = snap(line, mp, tolerance=1e-6)
+    parts = split(snapped, mp)
+    segs_500.extend(list(parts.geoms))
+
+seg500_gdf = gpd.GeoDataFrame(geometry=segs_500, crs="EPSG:25833")
+
+# attach attrs 
+src500 = stream_exploded.copy()
+src500 = src500.assign(orig_index=src500.index)
+src500["geometry"] = src500.geometry.buffer(0.01)  # 1 cm buffer 
+seg500_join = gpd.sjoin(seg500_gdf, src500, how="left", predicate="intersects")
+if "index_right" in seg500_join.columns:
+    seg500_join = seg500_join.drop(columns=["index_right"])
+
+# clean within boundary (clip, keep ~500±1 m, dedup by WKB)
+seg500_clip = gpd.clip(seg500_join, boundary_proj)
+seg500_clip["length_m"] = seg500_clip.geometry.length
+seg500_keep = seg500_clip[(seg500_clip["length_m"] >= 499) & (seg500_clip["length_m"] <= 501)].copy()
+seg500_keep["_wkb"] = seg500_keep.geometry.apply(lambda g: g.wkb)
+seg500_dedup = (
+    seg500_keep.sort_values("_wkb")
+    .drop_duplicates("_wkb")
+    .drop(columns="_wkb")
+    .reset_index(drop=True)
+)
+
+seg500_dedup["segment_id_500"] = range(1, len(seg500_dedup) + 1)
+
+# dissolve+merge 
+seg500_diss = seg500_dedup.dissolve(by="segment_id_500", as_index=False, aggfunc="first")
+seg500_diss["geometry"] = seg500_diss.geometry.apply(
+    lambda g: linemerge(g) if (g is not None and getattr(g, "geom_type", "") == "MultiLineString") else g
+)
+out500 = gpd.GeoDataFrame(seg500_diss, geometry="geometry", crs="EPSG:25833").to_crs(streamall.crs)
+out500.to_file("data/stream_segments/streamall_segment500.gpkg", driver="GPKG")
+print(len(out500))
+
+####
+# build 250 m segments
+segs_250 = []
+for line in merged_lines:
+    if line.length <= 250:
+        segs_250.append(line)
+        continue
+    dists = np.arange(250, line.length, 250)
+    if len(dists) == 0:
+        segs_250.append(line)
+        continue
+    pts = [line.interpolate(float(d)) for d in dists]
+    mp = MultiPoint(pts)
+    snapped = snap(line, mp, tolerance=1e-6)
+    parts = split(snapped, mp)
+    segs_250.extend(list(parts.geoms))
+
+seg250_gdf = gpd.GeoDataFrame(geometry=segs_250, crs="EPSG:25833")
+
+# attach attrs 
+src250 = stream_exploded.copy()
+src250 = src250.assign(orig_index=src250.index)
+src250["geometry"] = src250.geometry.buffer(0.01)
+seg250_join = gpd.sjoin(seg250_gdf, src250, how="left", predicate="intersects")
+if "index_right" in seg250_join.columns:
+    seg250_join = seg250_join.drop(columns=["index_right"])
+
+# clean within boundary (clip, keep ~250±1 m, dedup by WKB)
+seg250_clip = gpd.clip(seg250_join, boundary_proj)
+seg250_clip["length_m"] = seg250_clip.geometry.length
+seg250_keep = seg250_clip[(seg250_clip["length_m"] >= 249) & (seg250_clip["length_m"] <= 251)].copy()
+seg250_keep["_wkb"] = seg250_keep.geometry.apply(lambda g: g.wkb)
+seg250_dedup = (
+    seg250_keep.sort_values("_wkb")
+    .drop_duplicates("_wkb")
+    .drop(columns="_wkb")
+    .reset_index(drop=True)
+)
+
+seg250_dedup["segment_id_250"] = range(1, len(seg250_dedup) + 1)
+
+# dissolve+merge
+seg250_diss = seg250_dedup.dissolve(by="segment_id_250", as_index=False, aggfunc="first")
+seg250_diss["geometry"] = seg250_diss.geometry.apply(
+    lambda g: linemerge(g) if (g is not None and getattr(g, "geom_type", "") == "MultiLineString") else g
+)
+out250 = gpd.GeoDataFrame(seg250_diss, geometry="geometry", crs="EPSG:25833").to_crs(streamall.crs)
+out250.to_file("data/stream_segments/streamall_segment250.gpkg", driver="GPKG")
+print(len(out250))
