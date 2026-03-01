@@ -1,94 +1,432 @@
----
-title: "ReBioClim analytical workflow collaboration notebook"
-format: html
----
+# Workflow overview
 
+This document describes the complete analytical workflow for the ReBioClim project, including stream geometry preparation, variable calculation, clustering analysis, machine learning interpretation, and visualization.
 
-# prepare stream geometry (without segments)
-- all osm waterway
-    - from [`osm_stream_extract.py`](scripts/osm_stream_extract.py), osm way+relation, both extracted, for all possible tags with stream, much more complete than directly use the waterway=stream data from geofabrick or osmmx
-    - dissolve the stream where name is the same
-    - also add drain, ditch, culvert, river, for complete waterway lines as much as possible
-    - output is [`data/stream_geometry/allblue.gpkg`](data/stream_geometry/allblue.gpkg)
-- clean stream geometry
-    - [`clean_stream_geometry.py`](scripts/clean_stream_geometry.py)    
-    - from now on, the stream we use is the above [`allblue.gpkg`](data/stream_geometry/allblue.gpkg) and with its river removed
-    - remove some of "drain" "ditch" when it is not connected to any other waterway or allblue polygon (remove unnecessary stream endings)
-    - dissolve the ones with same name
-    - merge to continuous lines
-    - only keep the lines >=100m (remove the standalone short streams, since it is 100m, it is not considered in our analysis)
-- Dresden watercourse data replaced (provided by Dresden-municipality-Anna)
-    - [`clean_stream_geometry.py`](scripts/clean_stream_geometry.py)  
-    - the output is [`data/stream_geometry/streamall.gpkg`](data/stream_geometry/streamall.gpkg)
+## Script organization
 
-# create segments
-- below is for 100m
-- 100m segment from WFD? cannot find the datasource for the 100m segmentation. 
-    the WFD related values only vary when there is a sub-stream
-- create 100m segments in [`create_stream_segments.py`](scripts/create_stream_segments.py). 
-    - create points with 100m intervals
-        - did not specifically identify the mouth of stream and start from there; sometimes the mouth is a waterbody, so there is always some missing, so I doubt the value of starting from mouth
-    - create segments with snap to the point
-- add original attribute
-- only keep the ones with length between [99-101]m
-    - when cutting the lines into 100m, the results show there are some minor variations, so 99 to 101 m is still acceptable
-- remove overlaps
-- output is [`data/stream_geometry/streamall_segment100.gpkg`](data/stream_geometry/streamall_segment100.gpkg), n=5745
+All final scripts are organized in the `scripts/` directory:
 
-- below is for 500m
-- original idea is we select the smallest unit, as the basis. but now when we move to 500m, how about those 100m segments that cannot be included into any 500m segment?
-    - actually to make the stream linstring connected, i also tried to connect the lines when there are waterbody in between of two segmented lines. but in many cases the waterboday is also not complete data available, then we just connect whenver there are gaps? not reliable either
-- so now, the question is, when some segments are kept in 100m segment data, what should we do for those that cannot be included in any continuous 500m segment?
-- first just try change the script from 100 to 500 (and 250)
-    - create new field segment_id_500m
-    - now the ones that are below 500(495?) are excluded
-    - relate the 100mstream with the new 500m, where each 100m segment_id should correspond to the segment_id_500m
-        - if there is no corresponding ones, just NULL
-- or we just combine the segments when there are 500m continuous, (5 100m segements connected)
+-   **`scripts/01geometry/`** - Stream geometry preparation
+-   **`scripts/02variable/`** - Variable calculation
+-   **`scripts/03analysis/`** - Clustering and ML analysis
+-   **`scripts/04visual/`** - Visualization and mapping
 
+------------------------------------------------------------------------
 
-# calculate variable
-## variable 1 impervious cover
-- data needed: streamall_segment100, 100m buffer created for each stream segment, ESA worldcover 10m
-- impervious ratio (built-up area / buffer area)
-- [`calculate_impervious.py`](scripts/calculate_impervious.py)
+# 1. Prepare stream geometry
 
-## variable 2 canopy cover
-- data needed: streamall_segment100, 50m buffer created for each stream segment, ESA worldcover 10m
-- canopy cover (tree cover area / buffer area)
-- [`calculate_impervious.py`](scripts/calculate_canopy.py)
+## Extract OSM waterways
 
-## variable 3 green richness and shannon diversity index
-- data needed: streamall_segment100, 150m buffer created for each stream segment, ESA worldcover 10m
+-   Script: [`scripts/01geometry/01_extract_allblue.py`](scripts/01geometry/01_extract_allblue.py)
+-   Extract OSM way and relation data for all possible stream-related tags
+-   More complete than directly using waterway=stream data from Geofabrik or OSMnx
+-   Dissolve streams with the same name
+-   Include drain, ditch, culvert, river for complete waterway lines
+-   Output: [`data/stream_geometry/allblue.gpkg`](data/stream_geometry/allblue.gpkg)
 
-## variable 4 land surface temperature
-- data needed: streamall_segment100, 100m buffer created for each stream segment, Ermida GEE code 
-    - Ermida, S.L., Soares, P., Mantas, V., Göttsche, F.-M., Trigo, I.F., 2020. 
-        Google Earth Engine open-source code for Land Surface Temperature estimation from the Landsat series.
-        Remote Sensing, 12 (9), 1471; https://doi.org/10.3390/rs12091471
-    - mean of all LST (30m resolution) in each buffer
+## Clean stream geometry
 
-## variable 5 sinuosity
-- data needed: streamall_segment300
-- each 100m segment is checked to find a continuous sequence of three connected segments (i.e., previous, current, and next)
-- segments at the beginning (with next two segments), middle (with both previous and next segments), or end (with previous two segments) are retained
-- isolated segments or those without two-directional connections are excluded
-- new 300m segments are created by merging the geometries of the three valid connected segments
-- sinuosity is calculated as (length of merged geometry) / (straight-line distance from start to end point)
+-   Script: [`scripts/01geometry/02_create_stream_geometry.py`](scripts/01geometry/02_create_stream_geometry.py)
+-   Remove rivers from allblue.gpkg
+-   Remove isolated "drain" and "ditch" segments not connected to other waterways
+-   Dissolve segments with the same name
+-   Merge into continuous lines
+-   Keep only lines \>= 100m (remove standalone short streams)
+-   Output: [`data/stream_geometry/streamall.gpkg`](data/stream_geometry/streamall.gpkg)
 
+## Create segments from geometry
 
-##  variable 6 crossability
-- data needed: streamall_segment500, bridge+railway+road
-- 
+-   Script: [`scripts/01geometry/03_geometry_to_segment.py`](scripts/01geometry/03_geometry_to_segment.py)
+-   Create 100m, 200m, and 400m segments from stream geometry
+-   Use DTM to identify stream mouth points
+-   Create segments with consistent lengths
+-   Output:
+    -   [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg)
+    -   [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg)
+    -   [`data/input/streamall_400m_segments_from_mouth.gpkg`](data/input/streamall_400m_segments_from_mouth.gpkg)
 
+## Build final stream network
 
-## variable 7 accessibility to POI
-- data needed: streamall_segment500, OSM POI
-- 
+-   Script: [`scripts/01geometry/04_build_stream_network_and_segments.py`](scripts/01geometry/04_build_stream_network_and_segments.py)
+-   Input: cleaned stream geometry (`data/stream_geometry/streamall.gpkg`)
+-   Merge unnamed stream lines by proximity in **EPSG:25833** (meters), keep lines \>= 99m, assign `merged_id`
+-   Output final stream network:
+    -   [`data/input/streamall_merged_final.gpkg`](data/input/streamall_merged_final.gpkg)
+-   Detect mouth points from DTM and create 100m/200m/400m segments from mouth direction
+-   Outputs:
+    -   [`data/input/streamall_merged_mouth_points.gpkg`](data/input/streamall_merged_mouth_points.gpkg)
+    -   [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg)
+    -   [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg)
+    -   [`data/input/streamall_400m_segments_from_mouth.gpkg`](data/input/streamall_400m_segments_from_mouth.gpkg)
 
-## variable 8 accessibility to public transport
-- data needed: streamall_segment500, OSM bus/train/tram stop
-- 
+------------------------------------------------------------------------
 
-## variable 9 visibility
-- data needed: streamall_segment500, CRisp 
+# 2. Calculate Variables
+
+## V1/V2/V3 overview
+
+-   **V1 (context):** `absolute_slope`, `valley_width`, `valley_depth`, `distance_to_source`, `upstream_area`, `pop_density`.
+-   **V2 (actionable):** `impervious_density`, `canopy_ratio`, `richness_150m`, `shannon_150m`, `riparian_width`, `riparian_continuity`, `floodplain_ratio`, `total_crossings`, `underground_ratio`, `sinuosity`, `stop_count`, `poi_count`, `slowmob_length`, `entrance_count`.
+-   **V3 (goal):** `carbon_sequest`, `flooding`, `lst`, `poi_access_index`, `transport_access_index`, `slowmob_access_index`, `visibility_ratio`, `ndvi_0.4_ratio`, `habitat_quality`, `landuse_intensity`.
+
+## V1: hydro-morphological context (unlikely to change)
+
+### absolute_slope
+
+-   Definition: longitudinal absolute slope for each **200m segment**.
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg), morphology inputs used by 200m pipeline.
+-   Output: field `absolute_slope` in [`data/production/variables/v1_slope.gpkg`](data/production/variables/v1_slope.gpkg)
+-   Script: [`scripts/02variable/calculate_absolute_slope.py`](scripts/02variable/calculate_absolute_slope.py)
+
+### valley_width
+
+-   Definition: mean valley width for each **200m segment**.
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg), [`data/input/valleys.gpkg`](data/input/valleys.gpkg) from [`scripts/02variable/valley_rcrisp.R`](scripts/02variable/valley_rcrisp.R)
+-   Output: field `valley_width` in [`data/input/valleys.gpkg`](data/input/valleys.gpkg)
+-   Script: [`scripts/02variable/valley_rcrisp.R`](scripts/02variable/valley_rcrisp.R)
+
+### valley_depth
+
+-   Definition: mean valley depth for each **200m segment**.
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg), [`data/input/valleys.gpkg`](data/input/valleys.gpkg) from [`scripts/02variable/valley_rcrisp.R`](scripts/02variable/valley_rcrisp.R)
+-   Output: field `valley_depth` in [`data/input/valleys.gpkg`](data/input/valleys.gpkg)
+-   Script: [`scripts/02variable/valley_rcrisp.R`](scripts/02variable/valley_rcrisp.R)
+
+### distance_to_source
+
+-   Definition: along-network distance from segment midpoint to source (**200m segment**).
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg)
+-   Output: field `distance_to_source` in [`data/production/variables/v1_distance_to_source.gpkg`](data/production/variables/v1_distance_to_source.gpkg)
+-   Script: [`scripts/02variable/calculate_distance_to_source.py`](scripts/02variable/calculate_distance_to_source.py)
+
+### upstream_area
+
+-   Definition: upstream catchment size variable for **200m segment**, with two fields: `upstream_area_m2` and `upstream_area_log`.
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg), [`data/input/DTM_30m.tif`](data/input/DTM_30m.tif)
+-   Output: fields `upstream_area_m2` and `upstream_area_log` in [`data/production/variables/v1_upstream_area.gpkg`](data/production/variables/v1_upstream_area.gpkg)
+-   Script: [`scripts/02variable/calculate_upstream_area.py`](scripts/02variable/calculate_upstream_area.py)
+
+### pop_density
+
+-   Definition: mean population density around stream context (**400m segment** support layer).
+-   Input: [`data/input/streamall_400m_segments_from_mouth.gpkg`](data/input/streamall_400m_segments_from_mouth.gpkg), WorldPop 2020 rasters in `data/input/` (`worldpop_*_pd_2020_1km_UNadj.tif`)
+-   Output: field `pop_density_1km` in [`data/production/variables/v1_pop_density.gpkg`](data/production/variables/v1_pop_density.gpkg)
+-   Script: [`scripts/02variable/calculate_pop_density.py`](scripts/02variable/calculate_pop_density.py)
+
+## V2: variables that can be directly targeted by local actionable interventions.
+
+### impervious_density
+
+-   Definition: built-up ratio within **100m buffer** around each 100m segment.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), impervious raster used by 100m pipeline.
+-   Output: field `impervious_density` in [`data/production/variables/v2_impervious.gpkg`](data/production/variables/v2_impervious.gpkg)
+-   Script: [`scripts/02variable/calculate_impervious_density.py`](scripts/02variable/calculate_impervious_density.py)
+
+### canopy_ratio
+
+-   Definition: tree canopy ratio within **50m buffer** around each 100m segment.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), canopy raster used by 100m pipeline.
+-   Output: field `canopy_ratio` in [`data/production/variables/v2_canopy.gpkg`](data/production/variables/v2_canopy.gpkg)
+-   Script: [`scripts/02variable/calculate_canopy_ratio.py`](scripts/02variable/calculate_canopy_ratio.py)
+
+### richness_150m
+
+-   Definition: count of green land-cover classes in **150m buffer**.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), ESA land cover raster.
+-   Output: field `richness_150m` in [`data/production/variables/v2_richness.gpkg`](data/production/variables/v2_richness.gpkg)
+-   Script: [`scripts/02variable/calculate_richness.py`](scripts/02variable/calculate_richness.py)
+
+### shannon_150m
+
+-   Definition: shannon diversity index in **150m buffer**.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), ESA land cover raster.
+-   Output: field `shannon_150m` in [`data/production/variables/v2_shannon.gpkg`](data/production/variables/v2_shannon.gpkg)
+-   Script: [`scripts/02variable/calculate_shannon.py`](scripts/02variable/calculate_shannon.py)
+
+### riparian_width
+
+-   Definition: mean riparian vegetation width in the riparian analysis corridor around each 100m segment.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), ndvi or vegetation input used by riparian width pipeline.
+-   Output: field `riparian_width_mean` in [`data/production/variables/v2_riparian_width.gpkg`](data/production/variables/v2_riparian_width.gpkg)
+-   Script: [`scripts/02variable/calculate_riparian_width.py`](scripts/02variable/calculate_riparian_width.py)
+
+### riparian_continuity
+
+-   Definition: longest connected riparian vegetation patch length in meters for each 100m segment.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), ndvi or vegetation input used by riparian width pipeline.
+-   Output: field `riparian_continuity_longest_m` in [`data/production/variables/v2_riparian_width.gpkg`](data/production/variables/v2_riparian_width.gpkg)
+-   Script: [`scripts/02variable/calculate_riparian_width.py`](scripts/02variable/calculate_riparian_width.py)
+
+### floodplain_ratio
+
+-   Definition: floodplain area ratio in 250m corridor around each **100m segment**.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), floodplain source data used by flooding workflow.
+-   Output: field `floodplain_ratio_250m` in [`data/production/variables/v2_floodplain.gpkg`](data/production/variables/v2_floodplain.gpkg)
+-   Script: [`scripts/02variable/calculate_floodplain.py`](scripts/02variable/calculate_floodplain.py)
+
+### total_crossings
+
+-   Definition: total road and railway crossing count for each **200m segment**.
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg), crossing inputs in 200m pipeline.
+-   Output: field `total_crossings` in [`data/production/variables/v2_crossings.gpkg`](data/production/variables/v2_crossings.gpkg)
+-   Script: [`scripts/02variable/calculate_total_crossings.py`](scripts/02variable/calculate_total_crossings.py)
+
+### underground_ratio
+
+-   Definition: underground stream length ratio for each **200m segment**.
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg), [`data/input/streamall_merged_final.gpkg`](data/input/streamall_merged_final.gpkg), [`data/input/allblue.gpkg`](data/input/allblue.gpkg)
+-   Output: field `und_ratio` in [`data/production/variables/v2_underground_ratio.gpkg`](data/production/variables/v2_underground_ratio.gpkg)
+-   Script: [`scripts/02variable/calculate_underground_ratio.py`](scripts/02variable/calculate_underground_ratio.py)
+
+### sinuosity
+
+-   Definition: line length divided by straight endpoint distance for each **200m segment**.
+-   Input: [`data/input/streamall_200m_segments_from_mouth.gpkg`](data/input/streamall_200m_segments_from_mouth.gpkg)
+-   Output: field `sinuosity` in [`data/production/variables/v2_sinuosity.gpkg`](data/production/variables/v2_sinuosity.gpkg)
+-   Script: [`scripts/02variable/calculate_sinuosity.py`](scripts/02variable/calculate_sinuosity.py)
+
+### stop_count
+
+-   Definition: count of reachable public transport stops from stream entries within **1000m network distance**.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), roads and transport source layers.
+-   Output: field `stop_count` in [`data/production/variables/v2_access_transport.gpkg`](data/production/variables/v2_access_transport.gpkg)
+-   Script: [`scripts/02variable/calculate_transport_accessibility.py`](scripts/02variable/calculate_transport_accessibility.py)
+
+### poi_count
+
+-   Definition: count of reachable poi supply from stream entries within **1000m network distance**.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), roads and poi source layers.
+-   Output: field `POI_count` in [`data/production/variables/v2_access_poi.gpkg`](data/production/variables/v2_access_poi.gpkg)
+-   Script: [`scripts/02variable/calculate_poi_accessibility.py`](scripts/02variable/calculate_poi_accessibility.py)
+
+### slowmob_length
+
+-   Definition: summed reachable slow-mobility network length from stream entries within **1000m network distance**.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), roads source layer.
+-   Output: field `slowMob_length` in [`data/production/variables/v2_access_slowmob.gpkg`](data/production/variables/v2_access_slowmob.gpkg)
+-   Script: [`scripts/02variable/calculate_slow_mobility_accessibility.py`](scripts/02variable/calculate_slow_mobility_accessibility.py)
+
+### entrance_count
+
+-   Definition: number of delineated stream-entry access points per **400m segment**.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), roads source layer.
+-   Output: field `entrance_count` in [`data/production/variables/v2_access_transport.gpkg`](data/production/variables/v2_access_transport.gpkg)
+-   Script: [`scripts/02variable/calculate_transport_accessibility.py`](scripts/02variable/calculate_transport_accessibility.py)
+
+## V3: benefit/response indicators used to represent the three goals
+
+### carbon_sequest
+
+-   Definition: annual riparian carbon sequestration (area-normalized, `tC/ha/yr`) averaged across available year pairs.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), [`data/input/NDVI_riparian_GEE_Export/`](data/input/NDVI_riparian_GEE_Export/)
+-   Output: field `carbon_sequest` in [`data/production/variables/v3_carbon_sequest.gpkg`](data/production/variables/v3_carbon_sequest.gpkg)
+-   Script: [`scripts/02variable/calculate_carbon_sequestration.py`](scripts/02variable/calculate_carbon_sequestration.py)
+
+### flooding
+
+-   Definition: composite flood susceptibility proxy from floodplain width, riparian width, slope, and upstream catchment size (z-score averaged).
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), [`data/production/variables/v2_riparian_width.gpkg`](data/production/variables/v2_riparian_width.gpkg), [`data/production/variables/v2_floodplain.gpkg`](data/production/variables/v2_floodplain.gpkg), [`data/production/variables/v1_slope.gpkg`](data/production/variables/v1_slope.gpkg), [`data/production/variables/v1_upstream_area.gpkg`](data/production/variables/v1_upstream_area.gpkg)
+-   Output: field `flooding_proxy_v3_clim` in [`data/production/variables/v3_flooding.gpkg`](data/production/variables/v3_flooding.gpkg)
+-   Script: [`scripts/02variable/calculate_flooding.py`](scripts/02variable/calculate_flooding.py)
+
+### lst
+
+-   Definition: mean summer land surface temperature (Celsius) within the 100m buffer around each 100m stream segment.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), [`data/input/lst_2024summer.tif`](data/input/lst_2024summer.tif)
+-   Output: field `lst_mean_100m` in [`data/production/variables/v3_lst.gpkg`](data/production/variables/v3_lst.gpkg)
+-   Script: [`scripts/02variable/calculate_lst.py`](scripts/02variable/calculate_lst.py)
+
+### poi_access_index
+
+-   Definition: normalized accessibility index to POIs from stream-entry points at 400m segment scale.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), POI accessibility output (Pandana preferred; sfnetworks fallback).
+-   Output: field `poi_access_index` in [`data/production/variables/v2_access_poi.gpkg`](data/production/variables/v2_access_poi.gpkg)
+-   Script: [`scripts/02variable/calculate_poi_accessibility.py`](scripts/02variable/calculate_poi_accessibility.py)
+
+### transport_access_index
+
+-   Definition: normalized accessibility index to public transport stops from stream-entry points at 400m segment scale.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), transport accessibility output (Pandana preferred; sfnetworks fallback).
+-   Output: field `transport_access_index` in [`data/production/variables/v2_access_transport.gpkg`](data/production/variables/v2_access_transport.gpkg)
+-   Script: [`scripts/02variable/calculate_transport_accessibility.py`](scripts/02variable/calculate_transport_accessibility.py)
+
+### slowmob_access_index
+
+-   Definition: normalized accessibility index to slow-mobility opportunities (walk/cycle network opportunities) at 400m segment scale.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), slow-mobility accessibility output.
+-   Output: field `slowmob_access_index` in [`data/production/variables/v2_access_slowmob.gpkg`](data/production/variables/v2_access_slowmob.gpkg)
+-   Script: [`scripts/02variable/calculate_slow_mobility_accessibility.py`](scripts/02variable/calculate_slow_mobility_accessibility.py)
+
+### visibility_ratio
+
+-   Definition: isovist-style visibility proportion for each 400m segment.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), visibility result layer.
+-   Output: field `visibility_ratio` in [`data/production/variables/v_all_variables.gpkg`](data/production/variables/v_all_variables.gpkg)
+-   Script: [`scripts/02variable/merge_all_to_100m.py`](scripts/02variable/merge_all_to_100m.py)
+
+### ndvi_0.4_ratio
+
+-   Definition: ratio of NDVI pixels greater than 0.4 inside a 5m riparian buffer (`all_touched=True`) for each 100m stream segment.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), [`data/input/NDVI_riparian_GEE_Export/`](data/input/NDVI_riparian_GEE_Export/)
+-   Output: field `ndvi_0.4_ratio` in [`data/production/variables/v3_ndvi.gpkg`](data/production/variables/v3_ndvi.gpkg)
+-   Script: [`scripts/02variable/calculate_riparian_ndvi.py`](scripts/02variable/calculate_riparian_ndvi.py)
+
+### habitat_quality
+
+-   Definition: mean habitat quality value in the stream-centered 100m riparian mask (InVEST Habitat Quality result, summary metric).
+-   Input: [`data/input/ESA_landcover_all.tif`](data/input/ESA_landcover_all.tif), [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg)
+-   Output: metric `hq_mean` in [`output/invest_hq_25833/riparian_hq_stats_100m.csv`](output/invest_hq_25833/riparian_hq_stats_100m.csv)
+-   Script: [`scripts/02variable/run_invest_hq_25833.py`](scripts/02variable/run_invest_hq_25833.py), [`scripts/02variable/summarize_hq_riparian.py`](scripts/02variable/summarize_hq_riparian.py)
+
+### landuse_intensity
+
+-   Definition: land-use intensity index in 100m buffer, computed as `5 * artificial + 3 * agricultural + 1 * pasture` share.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), [`data/input/ESA_landcover_all.tif`](data/input/ESA_landcover_all.tif)
+-   Output: field `landuse_intensity` in [`data/production/variables/v3_landuse_intensity.gpkg`](data/production/variables/v3_landuse_intensity.gpkg)
+-   Script: [`scripts/02variable/calculate_landuse_intensity.py`](scripts/02variable/calculate_landuse_intensity.py)
+
+### Merge all variables to 100m segments
+
+-   Script: [`scripts/02variable/merge_all_to_100m.py`](scripts/02variable/merge_all_to_100m.py)
+-   Merge all calculated variables (100m, 200m, 400m) to 100m segment level
+-   Handle geometry column conflicts and duplicate column suffixes
+-   Output: [`data/production/variables/v_all_variables.gpkg`](data/production/variables/v_all_variables.gpkg)
+
+------------------------------------------------------------------------
+
+# 3. Clustering analysis
+
+## KMeans clustering
+
+-   Script: [`scripts/03analysis/clustering_kmeans.py`](scripts/03analysis/clustering_kmeans.py)
+-   **Method**: KMeans clustering with 12 variables
+-   **Variables used**:
+    1.  impervious_density
+    2.  canopy_ratio
+    3.  richness_150m
+    4.  shannon_150m
+    5.  lst_mean_100m
+    6.  absolute_slope
+    7.  valley_depth
+    8.  total_crossings
+    9.  poi_access_index
+    10. transport_access_index
+    11. visibility_ratio
+    12. sinuosity
+-   **Optimal k selection**: Silhouette score (k=3 to 15)
+-   **Output directory**: `data/clustering/kmeans_12vars/`
+-   **Output files**:
+    -   `kmeans_100m_12vars.gpkg` - Clustered segments with labels
+    -   `correlation_matrix.png` - Variable correlation heatmap
+    -   `silhouette_score_vs_k.png` - Silhouette score plot
+    -   `pca_2d_visualization.png` - PCA 2D visualization
+    -   `kmeans_100m_labels.csv` - Cluster labels
+    -   `kmeans_100m_cluster_means.csv` - Cluster mean values
+
+## Alternative clustering methods
+
+-   **DBSCAN**: [`scripts/03analysis/clustering_dbscan.py`](scripts/03analysis/clustering_dbscan.py)
+-   **GMM**: [`scripts/03analysis/clustering_gmm.py`](scripts/03analysis/clustering_gmm.py)
+
+------------------------------------------------------------------------
+
+# 4. Machine learning analysis
+
+## Interpretable ML with SHAP
+
+-   Script: [`scripts/03analysis/interpretable_ml_mpi.py`](scripts/03analysis/interpretable_ml_mpi.py)
+-   **Method**: LightGBM regression to predict Mazziotta-Pareto Index (MPI)
+-   **Cross-validation**: Leave-One-City-Out (LOCO)
+-   **Interpretation**: SHAP (SHapley Additive exPlanations)
+-   **Input**: 12 variables + cluster labels + city information
+-   **Output directory**: `output/interpretable_ml/`
+-   **Output files**:
+    -   `shap_global_importance.png` - Global feature importance
+    -   `shap_by_cluster_*.png` - SHAP plots by cluster
+
+## Measured data calibration
+
+-   Script: [`scripts/03analysis/calibrate_measured_spatial_final.py`](scripts/03analysis/calibrate_measured_spatial_final.py)
+-   Match measured field data to 100m segments using nearest neighbor
+-   Calculate Spearman correlation between measured and spatial variables
+-   Generate correlation heatmaps and scatter plots
+-   **Output directory**: `data/calibration/`
+
+------------------------------------------------------------------------
+
+# 5. Visualization
+
+## Variable maps
+
+-   Script: [`scripts/04visual/create_all_variable_map.py`](scripts/04visual/create_all_variable_map.py)
+
+-   Create combined maps for all variables across four cities (2x2 layout)
+
+-   Support both segment-level and cross-section level maps
+
+-   **Output directory**: `output/visual/maps/final/`
+
+-   **Output files**: \## Interactive Variable Layers (Leaflet/Folium)
+
+-   Script: [`scripts/04visual/segment_variable.py`](scripts/04visual/segment_variable.py)
+
+-   Create one interactive map with layer control for reflected segment variables
+
+-   Layer naming follows `V1-*`, `V2-*`, `V3-*`
+
+-   **Output file**:
+
+    -   `output/html/segment100m_variables_layers.html`
+
+## Cluster visualization
+
+-   Script: [`scripts/04visual/create_cluster_map.py`](scripts/04visual/create_cluster_map.py)
+-   Create comprehensive cluster visualizations:
+    -   Radar charts for each cluster
+    -   Top 5 representative segments with OSM and DTM backgrounds
+    -   City distribution maps for each cluster
+    -   All cities summary map
+    -   Merged comprehensive figures
+-   **Output directory**: `output/visual/clustering/`
+-   **Output subdirectories**:
+    -   `radar/` - Radar charts
+    -   `top5_osm_dtm_30m/` - Top 5 representative segments
+    -   `merged_top5_radar_city/` - Merged comprehensive visualizations
+-   **Output files**:
+    -   `all_cities_kmeans_6clusters_summary.png` - Summary map across all cities
+
+## MPI city maps
+
+-   Script: [`scripts/04visual/create_mpi_city_map.py`](scripts/04visual/create_mpi_city_map.py)
+-   Create MPI distribution maps for four cities (2x2 layout)
+-   Unified color range across cities
+-   Statistical summary for each city
+-   **Output directory**: `output/mpi_maps/`
+-   **Output files**:
+    -   `mpi_four_cities_2x2.png` - MPI maps
+
+# other notes
+
+# new variables
+
+## flood plain
+
+### poznan
+
+https://wody.isok.gov.pl/wss/INSPIRE/INSPIRE_NZ_HY_MZPMRP_WFS?SERVICE=WFS&REQUEST=GetCapabilities&VERSION=2.0.0
+
+### Jablonec
+
+https://www.dibavod.cz/index.php?id=27
+
+### Senica
+
+### EU level, only areas of potential flood risk
+
+https://discomap.eea.europa.eu/floodsviewer/?page=Page
+
+Now use this dataset, but it is not complete with all the waternetworks https://developers.google.com/earth-engine/datasets/catalog/JRC_CEMS_GLOFAS_FloodHazard_v2_1#bands
+
+# ripirian width
+
+Horve et al., 2026, buffer 50m, vegetation includes trees, shrubs, grass data riparian zone, didnt work, some streams do not have riparian zones included. the data only covers major rivers in Europe https://land.copernicus.eu/en/products/riparian-zones/rz-land-cover-land-use-2018 As there is high-resolution satellite image, we use a NDVI proxy within 50m riparian buffer to represent the presence, density, and lateral continuity of riparian vegetation. (Pace et al. (2022); Hislop et al. (2025)) Ideally we should use GeoAI to identify the water, the vegetation (tree, shrub, grass), but the data availability is a big problem, expecially Senica...
