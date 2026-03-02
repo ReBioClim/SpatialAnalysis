@@ -11,6 +11,14 @@ All final scripts are organized in the `scripts/` directory:
 -   **`scripts/03analysis/`** - Clustering and ML analysis
 -   **`scripts/04visual/`** - Visualization and mapping
 
+## Data organization
+
+-   **`data/input`** - input data
+-   **`data/production`** - computed data
+-   **`data/clustering`** - data used for clustering
+
+Data can be downloaded from: - **`smb://tudelft.net/staff-umbrella/ReBioClim/3-spatial/TO-SYNC-Github-SpatialAnalysis-data/data/clustering`**
+
 ------------------------------------------------------------------------
 
 # 1. Prepare stream geometry
