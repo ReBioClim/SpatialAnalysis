@@ -73,8 +73,8 @@ Data can be downloaded from: - **`smb://tudelft.net/staff-umbrella/ReBioClim/3-s
 
 ## V1/V2/V3 overview
 
--   **V1 (context):** `absolute_slope`, `valley_width`, `valley_depth`, `distance_to_source`, `upstream_area`, `pop_density`.
--   **V2 (actionable):** `impervious_density`, `canopy_ratio`, `richness_150m`, `shannon_150m`, `riparian_width`, `riparian_continuity`, `floodplain_ratio`, `total_crossings`, `underground_ratio`, `sinuosity`, `stop_count`, `poi_count`, `slowmob_length`, `entrance_count`.
+-   **V1 (context):** `absolute_slope`, `valley_width`, `valley_depth`, `distance_to_source`, `upstream_area`, `pop_density`, `road_barrier_index`.
+-   **V2 (actionable):** `impervious_density`, `canopy_ratio`, `richness_150m`, `shannon_150m`, `riparian_width`, `riparian_continuity`, `floodplain_ratio`, `total_crossings`, `underground_ratio`, `sinuosity`, `stop_count`, `poi_count`, `poi_programme`, `poi_amenities`, `slowmob_length`, `entrance_count`, `riparian_tree_density`, `open_space_ratio`.
 -   **V3 (goal):** `carbon_sequest`, `flooding`, `lst`, `poi_access_index`, `transport_access_index`, `slowmob_access_index`, `visibility_ratio`, `ndvi_0.4_ratio`, `habitat_quality`, `landuse_intensity`.
 
 ## V1: hydro-morphological context (unlikely to change)
@@ -165,12 +165,7 @@ Data can be downloaded from: - **`smb://tudelft.net/staff-umbrella/ReBioClim/3-s
 -   Output: field `riparian_continuity_longest_m` in [`data/production/variables/v2_riparian_width.gpkg`](data/production/variables/v2_riparian_width.gpkg)
 -   Script: [`scripts/02variable/calculate_riparian_width.py`](scripts/02variable/calculate_riparian_width.py)
 
-### floodplain_ratio
 
--   Definition: floodplain area ratio in 250m corridor around each **100m segment**.
--   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), floodplain source data used by flooding workflow.
--   Output: field `floodplain_ratio_250m` in [`data/production/variables/v2_floodplain.gpkg`](data/production/variables/v2_floodplain.gpkg)
--   Script: [`scripts/02variable/calculate_floodplain.py`](scripts/02variable/calculate_floodplain.py)
 
 ### total_crossings
 
@@ -193,6 +188,13 @@ Data can be downloaded from: - **`smb://tudelft.net/staff-umbrella/ReBioClim/3-s
 -   Output: field `sinuosity` in [`data/production/variables/v2_sinuosity.gpkg`](data/production/variables/v2_sinuosity.gpkg)
 -   Script: [`scripts/02variable/calculate_sinuosity.py`](scripts/02variable/calculate_sinuosity.py)
 
+### road_barrier_index
+
+-   Definition: weighted transport barrier intensity near the stream at **100m segment** scale within a **100m buffer**, computed as `road_barrier_index = sum(length_i * class_weight_i)` for intersecting road and railway segments.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), OSM road and railway layers.
+-   Output: field `road_barrier_index` in [`data/production/variables/v2_road_barrier.gpkg`](data/production/variables/v2_road_barrier.gpkg)
+-   Script: [`scripts/02variable/calculate_road_barrier_index.py`](scripts/02variable/calculate_road_barrier_index.py)
+
 ### stop_count
 
 -   Definition: count of reachable public transport stops from stream entries within **1000m network distance**.
@@ -207,6 +209,20 @@ Data can be downloaded from: - **`smb://tudelft.net/staff-umbrella/ReBioClim/3-s
 -   Output: field `POI_count` in [`data/production/variables/v2_access_poi.gpkg`](data/production/variables/v2_access_poi.gpkg)
 -   Script: [`scripts/02variable/calculate_poi_accessibility.py`](scripts/02variable/calculate_poi_accessibility.py)
 
+### poi_programme
+
+-   Definition: count of reachable programmed facilities including education, sports, culture, food, and civic uses from stream entries at **400m segment** scale within **1000m** search distance.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), poi point/polygon source layers.
+-   Output: field `poi_programme` in [`data/production/variables/v2_access_poi_programme_amenities.gpkg`](data/production/variables/v2_access_poi_programme_amenities.gpkg)
+-   Script: [`scripts/02variable/calculate_poi_programme_amenities.py`](scripts/02variable/calculate_poi_programme_amenities.py)
+
+### poi_amenities
+
+-   Definition: count of reachable small public amenities, including benches, picnic tables, playgrounds, and related facilities, from stream entries at **400m segment** scale within **1000m** search distance.
+-   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), poi point/polygon source layers.
+-   Output: field `poi_amenities` in [`data/production/variables/v2_access_poi_programme_amenities.gpkg`](data/production/variables/v2_access_poi_programme_amenities.gpkg)
+-   Script: [`scripts/02variable/calculate_poi_programme_amenities.py`](scripts/02variable/calculate_poi_programme_amenities.py)
+
 ### slowmob_length
 
 -   Definition: summed reachable slow-mobility network length from stream entries within **1000m network distance**.
@@ -220,6 +236,20 @@ Data can be downloaded from: - **`smb://tudelft.net/staff-umbrella/ReBioClim/3-s
 -   Input: [`data/input/streamall_400m_segments_from_mouth_with_city.gpkg`](data/input/streamall_400m_segments_from_mouth_with_city.gpkg), roads source layer.
 -   Output: field `entrance_count` in [`data/production/variables/v2_access_transport.gpkg`](data/production/variables/v2_access_transport.gpkg)
 -   Script: [`scripts/02variable/calculate_transport_accessibility.py`](scripts/02variable/calculate_transport_accessibility.py)
+
+### riparian_tree_density
+
+-   Definition: mean tree canopy cover in the immediate riparian strip at **100m segment** scale within a **10m buffer**, computed as `riparian_tree_density = mean(tcd_2023_within_10m_buffer) / 100`.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), [`data/canopy/tcd_2023_tiles/tcd_2023.vrt`](data/canopy/tcd_2023_tiles/tcd_2023.vrt)
+-   Output: field `riparian_tree_density` in [`data/production/variables/v2_riparian_tree_density.gpkg`](data/production/variables/v2_riparian_tree_density.gpkg)
+-   Script: [`scripts/02variable/calculate_riparian_tree_density.py`](scripts/02variable/calculate_riparian_tree_density.py)
+
+### open_space_ratio
+
+-   Definition: ratio of open or lightly used land near the stream at **100m segment** scale within a **100m buffer**, computed as `open_space_ratio = open_space_area / buffer_area`.
+-   Input: [`data/input/streamall_100m_segments_from_mouth.gpkg`](data/input/streamall_100m_segments_from_mouth.gpkg), [`data/input/ESA_landcover_all.tif`](data/input/ESA_landcover_all.tif)
+-   Output: field `open_space_ratio` in [`data/production/variables/v2_open_space_ratio.gpkg`](data/production/variables/v2_open_space_ratio.gpkg)
+-   Script: [`scripts/02variable/calculate_open_space_ratio.py`](scripts/02variable/calculate_open_space_ratio.py)
 
 ## V3: benefit/response indicators used to represent the three goals
 
@@ -335,6 +365,20 @@ Data can be downloaded from: - **`smb://tudelft.net/staff-umbrella/ReBioClim/3-s
 
 -   **DBSCAN**: [`scripts/03analysis/clustering_dbscan.py`](scripts/03analysis/clustering_dbscan.py)
 -   **GMM**: [`scripts/03analysis/clustering_gmm.py`](scripts/03analysis/clustering_gmm.py)
+
+## KMeans clustering (V1 only)
+
+-   Script: [`scripts/03analysis/clustering_kmeans_v1.py`](scripts/03analysis/clustering_kmeans_v1.py)
+-   **Method**: KMeans clustering with V1 variables only
+-   **Variables used**: `valley_depth`, `valley_width`, `absolute_slope`, `distance_to_source`, `upstream_area_log`, `und_ratio`, `sinuosity`, `road_barrier_index`
+-   **Output directory**: `data/clustering/kmeans_v1/`
+-   **Output files**:
+    -   `kmeans_v1.gpkg` - Clustered segments with labels
+    -   `kmeans_v1_labels.csv` - Cluster labels
+    -   `kmeans_v1_cluster_means.csv` - Cluster mean values
+    -   `correlation_matrix.png` - Variable correlation heatmap
+    -   `silhouette_score_vs_k.png` - Silhouette score plot
+    -   `pca_2d_visualization.png` - PCA 2D visualization
 
 ------------------------------------------------------------------------
 
