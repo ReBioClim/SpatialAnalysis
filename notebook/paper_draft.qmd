@@ -1,0 +1,190 @@
+# Abstract
+
+# 1. Introduction
+
+Urban streams form extensive yet often overlooked ecological and spatial networks within cities. Despite their widespread presence, many urban streams are heavily modified through channelization, culverting, and surrounding urban development, resulting in degraded ecological conditions and limited social functionality. These transformations reduce their capacity to support biodiversity, mitigate urban heat, and provide accessible public spaces.
+
+In the context of increasing environmental challenges, including biodiversity loss and climate change, urban streams have the potential to function as nature-based solutions that simultaneously enhance ecological performance and improve urban livability. However, their restoration and management remain constrained by fragmented assessment approaches. Existing evaluations are typically based on site-specific field surveys, which are time-consuming, difficult to standardize, and not scalable to large urban stream networks.
+
+Recent advances in open geospatial data offer new opportunities to assess urban stream conditions at scale. Nevertheless, most existing studies focus on descriptive assessments or composite indices (Ranta et al., 2021; Lespez et al., 2025), which often obscure underlying mechanisms and provide limited guidance for practical interventions. There remains a lack of systematic frameworks that can both identify restoration needs and translate spatial analysis into actionable planning strategies.
+
+This study aims to develop a spatially explicit, open-data-based framework to support urban stream restoration. Specifically, it addresses the key question: for different types of stream corridors, what types of interventions are most effective to improve biodiversity, climate adaptation, and quality of life?
+
+Rather than relying on a single composite index, this study emphasizes the relationships between actionable variables and multiple outcome indicators. By doing so, it seeks to provide interpretable and practice-oriented guidance for optimizing restoration measures in urban stream corridors.
+
+# 2. Methods
+
+## 2.1 Workflow Overview
+
+The workflow contains following stages:
+
+1.  Stream geometry cleaning and segmentation.
+2.  Variable calculation (V1, V2, V3).
+3.  Merge all variables to 100m segment level.
+4.  Clustering and interpretation.
+5.  Relate V2 and V3 for each cluster to find the most effective interventions.
+
+The complete workflow is implemented in the [`notebook/rebioclim_workflow.qmd`](notebook/rebioclim_workflow.qmd) notebook.
+
+![Workflow of the analytical framework.](figures/workflow.png){Workflow of the analytical framework}
+
+## 2.2 Variable System
+
+### V1
+
+V1 variables represent relatively stable hydro-morphological context and structural conditions, including valley characteristics, slope, upstream position, and degree of structural modification. These variables are not easily altered through local interventions and are therefore used to derive stream typology.
+
+#### V1a. Hydro-morphological context
+
+-   `absolute_slope`
+-   `valley_width`
+-   `valley_depth`
+-   `distance_to_source`
+-   `upstream_area`
+-   `pop_density`
+
+#### V1b. Structural context
+
+-   `road_barrier_index`
+-   `underground_ratio`
+-   `sinuosity`
+
+### V2
+
+V2 variables represent actionable and planning-relevant attributes of the stream corridor, including ecological characteristics (e.g., canopy cover, riparian structure, imperviousness) and accessibility-related factors (e.g., entrances, slow-mobility networks, and proximity to public transport and points of interest). These variables serve as potential intervention levers.
+
+#### V2a. Eco-spatial intervention variables
+
+-   `impervious_density`
+-   `canopy_ratio`
+-   `riparian_continuity`
+-   `riparian_tree_density`
+
+#### V2b. Access and public-use intervention variables
+
+-   `stop_count`
+-   `poi_programme`
+-   `poi_amenities`
+-   `slowmob_length`
+-   `entrance_count`
+
+#### V2c. Spatial opportunity variables
+
+-   `open_space_ratio`
+
+### V3
+
+V3 variables represent outcome indicators corresponding to the three primary goals of the study: biodiversity, climate adaptation, and quality of life. These indicators are derived from spatial proxies rather than direct measurements.
+
+#### V3a. Climate regulation
+
+-   `carbon_sequest`
+-   `lst`
+
+#### V3b. Biodiversity-supporting conditions
+
+-   `ndvi_0.4_ratio`
+-   `habitat_quality`
+-   `landuse_intensity`
+
+#### V3c. Public accessibility and experiential quality
+
+-   `poi_access_index`
+-   `transport_access_index`
+-   `slowmob_access_index`
+-   `visibility_ratio`
+
+## 2.3 Clustering
+
+KMeans clustering is performed on the merged 100m dataset. In the current manuscript version, we report a V1-only clustering run to derive hydro-morphological typology. Standardization is applied before clustering, and the final cluster assignment is joined back to the segment geometry.
+
+## 2.4 Optimization model
+
+For each cluster, a regression-based machine learning model (I consider usingLightGBM) is applied to quantify the contribution of individual V2 variables to different V3 outcomes. This approach enables the identification of context-dependent effects, where the effectiveness of interventions may vary across different structural conditions.
+
+Rather than assuming uniform relationships across all stream segments, this step allows the analysis to reveal which variables act as key intervention levers within each typology.
+
+Feature importance and SHAP values are used to interpret model results and to understand both the relative importance of variables and their directional effects on outcomes.
+
+This modeling framework supports the translation of spatial patterns into actionable restoration guidance.
+
+# 3. Results
+
+## 3.1 Variable Outputs
+
+Summary statistics of all variables are presented to provide an overview of their distributions and ranges across study areas.
+
+(Some variables are to be deleted.)
+
+| Variable                      | Non-null | Missing % |      Median |         Mean |
+|-----------------|-------------:|-------------:|-------------:|-------------:|
+| absolute_slope                |     5713 |      2.94 |      0.0125 |       0.0249 |
+| valley_width                  |     5713 |      2.94 |   2444.5297 |    1945.2340 |
+| valley_depth                  |     5713 |      2.94 |     13.6735 |      18.3594 |
+| distance_to_source            |     5713 |      2.94 |    700.0000 |    1714.6680 |
+| pop_density_1km               |     4712 |     19.95 |   1001.7611 |    1358.7477 |
+| upstream_area_m2              |     5713 |      2.94 | 453600.0000 | 5773533.0000 |
+| upstream_area_log             |     5713 |      2.94 |     13.0250 |      12.9004 |
+| und_ratio                     |     5713 |      2.94 |      0.0000 |       0.1369 |
+| sinuosity                     |     5713 |      2.94 |      1.0469 |       1.0904 |
+| road_barrier_index            |     5886 |      0.00 |    598.3398 |     748.1524 |
+| impervious_density            |     5886 |      0.00 |      1.0293 |       7.9049 |
+| canopy_ratio                  |     5886 |      0.00 |      0.5641 |       0.5434 |
+| riparian_width_mean           |     5886 |      0.00 |    110.0000 |      93.9541 |
+| riparian_continuity_longest_m |     5886 |      0.00 |    100.0000 |      91.9725 |
+| riparian_tree_density         |     5886 |      0.00 |      0.1354 |       0.1430 |
+| stop_count                    |     5194 |     11.76 |      0.0000 |       0.4948 |
+| POI_count                     |     5194 |     11.76 |      7.5058 |      15.5575 |
+| poi_programme                 |     5194 |     11.76 |     16.0000 |     170.9392 |
+| poi_amenities                 |     5194 |     11.76 |     46.0000 |     392.0874 |
+| slowMob_length                |     5194 |     11.76 |      9.3023 |      18.9064 |
+| entrance_count                |     5194 |     11.76 |      3.0000 |       4.6941 |
+| open_space_ratio              |     5886 |      0.00 |      0.0425 |       0.1497 |
+| carbon_sequest                |     5886 |      0.00 |      0.0412 |       0.0584 |
+| flooding_proxy_v3_clim        |     5462 |      7.20 |     -0.0052 |      -0.0052 |
+| lst_mean_100m                 |     5778 |      1.83 |     29.3653 |      29.4599 |
+| poi_access_index              |     5194 |     11.76 |      0.0193 |       0.0401 |
+| transport_access_index        |     5194 |     11.76 |      0.0000 |       0.0421 |
+| slowmob_access_index          |     5194 |     11.76 |      0.0163 |       0.0332 |
+| visibility_ratio              |     5194 |     11.76 |      0.9441 |       0.8743 |
+| ndvi_0.4_ratio                |     5567 |      5.42 |      0.1667 |       0.1839 |
+| hq_mean                       |     5886 |      0.00 |      0.7902 |       0.7585 |
+| landuse_intensity             |     5886 |      0.00 |      0.3484 |       0.5348 |
+
+## 3.2 Typology Results
+
+The clustering results reveal distinct stream typology 
+types characterized by differences in hydro-morphological 
+and structural conditions. Each typology represents a 
+specific restoration context rather than a performance 
+level.
+(The current version is a preliminary result for exploring next steps.)
+
+| Cluster | Segments (n) | Basic name | Main characteristics (relative) |
+|----------------|---------------:|----------------|-------------------------|
+| 1 | 3041 | Urban Downstream Barrier Type | Higher `distance_to_source`, high `upstream_area_log`, highest `road_barrier_index`, and highest `pop_density_1km` |
+| 2 | 768 | Midstream Low-Barrier Common Type | Moderate morphology, low `road_barrier_index`, low `und_ratio`, and lower `pop_density_1km` |
+| 3 | 207 | Far-Downstream Meandering Type | Very high `distance_to_source` and `upstream_area_log`, highest `sinuosity`, and moderate barrier intensity |
+| 4 | 754 | Underground-Corridor Type | Highest `und_ratio`, moderate barrier intensity, moderate-high `pop_density_1km`, and relatively low slope |
+| 5 | 943 | Steep Headwater Type | Highest `absolute_slope`, shorter `distance_to_source`, and moderate `road_barrier_index` |
+| -1 | 173 | Unclassified (Missing Context) | Missing one or more V1 context fields, mainly parent-scale variables from upstream mapping |
+
+## 3.3 Intervention Effectiveness
+
+Global and typology-specific analyses are conducted to identify key intervention variables influencing different outcome indicators.
+
+At the global level, feature importance analysis highlights the most influential variables across all stream segments.
+
+At the typology level, the effects of V2 variables on V3 outcomes vary across different clusters, indicating context-dependent intervention effectiveness.
+
+This step can show the value of developing typology. \### Typology 1 \### Typology 2 \### Typology 3 \### Typology 4
+
+# 4. Discussion
+
+## 4.1 Recommended restoration strategies for each typology
+
+## 4.2 Planning Implications
+
+## 4.3 Limitations and Future Work
+
+# 5. Conclusion
