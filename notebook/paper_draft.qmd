@@ -30,7 +30,43 @@ The complete workflow is implemented in the [`notebook/rebioclim_workflow.qmd`](
 
 ## 2.2 Variable System
 
-### V1
+| Variable | Definition | Calculation length / buffer size (m) | Source | Importance |
+|----|----|----|----|----|
+| V1 |  |  |  |  |
+| slope | the degree of curvature or winding in a stream channel (Shekar & Mathew, 2024). | 200/- | Amatulli et al., 2018; Niezgoda & Johnson, 2005 | Even under similar climatic conditions, different stream morphologies may still result from the differences in channel slope, soil types present in the stream basins, average rainfall intensities and total drainage area (Gregory et al. 1992). (Xia et al., 2010)\\ |
+|  |  |  |  | Topography as measured by elevation and its derived variables (e.g., slope and aspect), is key for characterizing spatial heterogeneity and the abiotic environment in a given area, subsequently driving hydrological, geomorphological, and biological processes (Amatulli et al., 2018) |
+|  | Absolute value of longitudinal slope along 200m stream segments. Sample elevation at start and end points from DTM, calculate elevation difference, divide by segment length, take absolute value. |  |  |  |
+| valley_width | Mean valley width across cross-sections of 200m stream segments. Valley shape polygon for each stream (with same name) calculated from RCrisp. Sample cross-sections at the middle point, measure valley width at the cross-section from valley polygons and DTM. | 200/- | Xia et al., 2010 | Valley side slope length and angle |
+| valley_depth | Mean valley depth across cross-sections of 200m stream segments. Sample cross-sections at the middle point of the segment, measure valley depth (top - bottom elevation) at each cross-section, calculate mean. | 200/- | Xia et al., 2010 | Valley side slope length and angle |
+| distance_to_source |  | 200/- | Doretto et al., 2020; Benda et al., 2004 | reflects the longitudinal position in the river network and is widely used to represent downstream gradients in hydrological, geomorphological, and ecological processes (Benda et al., 2004). |
+| upstream_area | scale is too big, not to consider? | 200/- |  | a fundamental control on discharge and scaling relationships, modulating the effects of urbanization along the river network (Leopold & Maddock, 1953; Paul & Meyer, 2001). |
+| pop_density | scale is too big, not to consider? | 400/1000 |  |  |
+| road_barrier |  | 400/1000 | Grill et al., 2019 | Road density is a proxy for lateral disconnection from floodplains and longitudinal loss of connectivity at intersections with streams, in particular culverts (Grill et al., 2019). |
+| underground_ratio | openness | 400/1000 | Lespez et al., 2025 |  |
+| sinuosity |  | 200/- | Lespez et al., 2025; Xia et al., 2010; Rosgen, 1994; Niezgoda & Johnson, 2005 | The sinuosity index (SI) was calculated on 50 x Bankfull width centered on the cross-section |
+| V2 |  |  |  |  |
+| impervious_cover |  | 100m | Schiff & Benoit, 2007; Sharma & Khanal, 2024 | at the reach scale, are better predictors of biotic condition than regional land use |
+| canopy_cover |  | 100/ | Burrell et al. 2014; Ranta et al., 2021 | shading helps regulate water temperature and limit eutrophication, although excessive shading in small streams may reduce biomass production by photosynthetic organisms. |
+| riparian_continuity |  |  | Lespez et al., 2025; Ranta el al., 2021; Xia et al., 2010 | \% of riparian corridors (average of both margins) that has no vegetation cuts. Scale: 500m |
+| riparian_tree_density |  |  | Lespez et al., 2025 |  |
+| stop_count |  |  | NEW |  |
+| poi_programme | Educational tools (number of signs) |  | Lespez et al., 2025 |  |
+| poi_amenities | number of benches, picnic tables, etc. |  | Lespez et al., 2025 |  |
+| slowmob_length |  |  | Lespez et al., 2025 | Mobility options (pedestrian/ bike paths); |
+| entrance_count |  |  | Lespez et al., 2025 | allowing access to the water |
+| open_space_ratio |  |  | Lespez et al., 2025 | surrounding land use? |
+| V3 |  |  |  |  |
+| carbon_sequest | Calculation based on CO2 sequestered by the dominant species per year in a 100m buffer zone. |  | Ranta et al., 2021 |  |
+| lst |  |  | Zhou et al., 2023 (lst); Kim et al., 2008 （air temp） |  |
+| floodplain availability | Available land (m2) to natural floods ((natural area that can receive water in high precipitation periods without causing damages (floods) in constructed areas)). Scale: consider a transept of 10 x stream width over the 500 m stretch |  | Ranta et al., 2021; Verol et al., 2019 | If land is available near streams where the water can expand to in high rainfall periods, this help preventing flood damages in the constructed areas. |
+| habitat_quality |  |  |  | InVEST |
+| landuse_intensity |  |  | Lespez et al., 2025; Xia et al., 2010 |  |
+| poi_access_index |  |  |  |  |
+| transport_access_index |  |  |  |  |
+| slowmob_access_index |  |  | Ranta et al., 2021; Wolsink, 2016 |  |
+| visibility_ratio |  |  | Lespez et al., 2025 |  |
+
+### V1 morphology? (why only use these for variables)
 
 V1 variables represent relatively stable hydro-morphological context and structural conditions, including valley characteristics, slope, upstream position, and degree of structural modification. These variables are not easily altered through local interventions and are therefore used to derive stream typology.
 
@@ -49,7 +85,7 @@ V1 variables represent relatively stable hydro-morphological context and structu
 -   `underground_ratio`
 -   `sinuosity`
 
-### V2
+### V2 lulc?
 
 V2 variables represent actionable and planning-relevant attributes of the stream corridor, including ecological characteristics (e.g., canopy cover, riparian structure, imperviousness) and accessibility-related factors (e.g., entrances, slow-mobility networks, and proximity to public transport and points of interest). These variables serve as potential intervention levers.
 
@@ -117,7 +153,7 @@ Summary statistics of all variables are presented to provide an overview of thei
 (Some variables are to be deleted.)
 
 | Variable                      | Non-null | Missing % |      Median |         Mean |
-|-----------------|-------------:|-------------:|-------------:|-------------:|
+|-------------------------------|---------:|----------:|------------:|-------------:|
 | absolute_slope                |     5713 |      2.94 |      0.0125 |       0.0249 |
 | valley_width                  |     5713 |      2.94 |   2444.5297 |    1945.2340 |
 | valley_depth                  |     5713 |      2.94 |     13.6735 |      18.3594 |
@@ -153,15 +189,10 @@ Summary statistics of all variables are presented to provide an overview of thei
 
 ## 3.2 Typology Results
 
-The clustering results reveal distinct stream typology 
-types characterized by differences in hydro-morphological 
-and structural conditions. Each typology represents a 
-specific restoration context rather than a performance 
-level.
-(The current version is a preliminary result for exploring next steps.)
+The clustering results reveal distinct stream typology types characterized by differences in hydro-morphological and structural conditions. Each typology represents a specific restoration context rather than a performance level. (The current version is a preliminary result for exploring next steps.)
 
 | Cluster | Segments (n) | Basic name | Main characteristics (relative) |
-|----------------|---------------:|----------------|-------------------------|
+|----|---:|----|----|
 | 1 | 3041 | Urban Downstream Barrier Type | Higher `distance_to_source`, high `upstream_area_log`, highest `road_barrier_index`, and highest `pop_density_1km` |
 | 2 | 768 | Midstream Low-Barrier Common Type | Moderate morphology, low `road_barrier_index`, low `und_ratio`, and lower `pop_density_1km` |
 | 3 | 207 | Far-Downstream Meandering Type | Very high `distance_to_source` and `upstream_area_log`, highest `sinuosity`, and moderate barrier intensity |
@@ -177,7 +208,17 @@ At the global level, feature importance analysis highlights the most influential
 
 At the typology level, the effects of V2 variables on V3 outcomes vary across different clusters, indicating context-dependent intervention effectiveness.
 
-This step can show the value of developing typology. \### Typology 1 \### Typology 2 \### Typology 3 \### Typology 4
+This step can show the value of developing typology.
+
+### Typology 1
+
+### Typology 2
+
+### Typology 3
+
+### Typology 4
+
+### Typology 5
 
 # 4. Discussion
 
@@ -188,3 +229,29 @@ This step can show the value of developing typology. \### Typology 1 \### Typolo
 ## 4.3 Limitations and Future Work
 
 # 5. Conclusion
+
+# References
+
+Amatulli, G., Domisch, S., Tuanmu, M. N., Parmentier, B., Ranipeta, A., Malczyk, J., & Jetz, W. (2018). A suite of global, cross-scale topographic variables for environmental and biodiversity modeling. *Scientific data*, *5*(1), 180040.
+
+Benda, L. E. E., Poff, N. L., Miller, D., Dunne, T., Reeves, G., Pess, G., & Pollock, M. (2004). The network dynamics hypothesis: how channel networks structure riverine habitats. *BioScience*, *54*(5), 413-427.
+
+Doretto, A., Piano, E., & Larson, C. E. (2020). The River Continuum Concept: lessons from the past and perspectives for the future. *Canadian Journal of Fisheries and Aquatic Sciences*, *77*(11), 1853-1864.
+
+Lespez, L., Germaine, M. A., Gob, F., Tales, E., Thommeret, N., de Milleville, L., ... & Letourneur, M. (2025). A new tool to characterise the socio-environmental dimensions of urban rivers: Urban river socio-environmental index. *Landscape and Urban Planning*, *261*, 105388.
+
+Niezgoda, S. L., & Johnson, P. A. (2005). Improving the urban stream restoration effort: identifying critical form and processes relationships. *Environmental management*, *35*(5), 579-592.
+
+Ranta, E., Vidal-Abarca, M. R., Calapez, A. R., & Feio, M. J. (2021). Urban stream assessment system (UsAs): An integrative tool to assess biodiversity, ecosystem functions and services. *Ecological Indicators*, *121*, 106980.
+
+Rosgen, D. L. (1994). A classification of natural rivers. *Catena*, *22*(3), 169-199.
+
+Xia, T., Zhu, W., Xin, P., & Li, L. (2010). Assessment of urban stream morphology: an integrated index and modelling system. *Environmental monitoring and assessment*, *167*(1), 447-460.
+
+Walsh, C. J., Roy, A. H., Feminella, J. W., Cottingham, P. D., Groffman, P. M., & Morgan, R. P. (2005). The urban stream syndrome: current knowledge and the search for a cure. *Journal of the North American Benthological Society*, *24*(3), 706-723.
+
+Schiff, R., & Benoit, G. (2007). Effects of impervious Cover at multiple spatial scales on coastal watershed streams 1. *JAWRA Journal of the American Water Resources Association*, *43*(3), 712-730.
+
+Shekar, P. R., & Mathew, A. (2024). Morphometric analysis of watersheds: A comprehensive review of data sources, quality, and geospatial techniques. *Watershed Ecology and the Environment*, *6*, 13-25.
+
+Zhou, W., Cao, W., Wu, T., & Zhang, T. (2023). The win-win interaction between integrated blue and green space on urban cooling. *Science of The Total Environment*, *863*, 160712.
