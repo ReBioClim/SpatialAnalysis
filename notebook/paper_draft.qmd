@@ -30,105 +30,76 @@ The complete workflow is implemented in the [`notebook/rebioclim_workflow.qmd`](
 
 ## 2.2 Variable System
 
-| Variable | Definition | Calculation length / buffer size (m) | Source | Importance |
+| Variable | Definition | Scale (m) | Rationale | Source |
 |----|----|----|----|----|
-| V1 |  |  |  |  |
-| slope | the degree of curvature or winding in a stream channel (Shekar & Mathew, 2024). | 200/- | Amatulli et al., 2018; Niezgoda & Johnson, 2005 | Even under similar climatic conditions, different stream morphologies may still result from the differences in channel slope, soil types present in the stream basins, average rainfall intensities and total drainage area (Gregory et al. 1992). (Xia et al., 2010)\\ |
-|  |  |  |  | Topography as measured by elevation and its derived variables (e.g., slope and aspect), is key for characterizing spatial heterogeneity and the abiotic environment in a given area, subsequently driving hydrological, geomorphological, and biological processes (Amatulli et al., 2018) |
-|  | Absolute value of longitudinal slope along 200m stream segments. Sample elevation at start and end points from DTM, calculate elevation difference, divide by segment length, take absolute value. |  |  |  |
-| valley_width | Mean valley width across cross-sections of 200m stream segments. Valley shape polygon for each stream (with same name) calculated from RCrisp. Sample cross-sections at the middle point, measure valley width at the cross-section from valley polygons and DTM. | 200/- | Xia et al., 2010 | Valley side slope length and angle |
-| valley_depth | Mean valley depth across cross-sections of 200m stream segments. Sample cross-sections at the middle point of the segment, measure valley depth (top - bottom elevation) at each cross-section, calculate mean. | 200/- | Xia et al., 2010 | Valley side slope length and angle |
-| distance_to_source |  | 200/- | Doretto et al., 2020; Benda et al., 2004 | reflects the longitudinal position in the river network and is widely used to represent downstream gradients in hydrological, geomorphological, and ecological processes (Benda et al., 2004). |
-| upstream_area | scale is too big, not to consider? | 200/- |  | a fundamental control on discharge and scaling relationships, modulating the effects of urbanization along the river network (Leopold & Maddock, 1953; Paul & Meyer, 2001). |
-| pop_density | scale is too big, not to consider? | 400/1000 |  |  |
-| road_barrier |  | 400/1000 | Grill et al., 2019 | Road density is a proxy for lateral disconnection from floodplains and longitudinal loss of connectivity at intersections with streams, in particular culverts (Grill et al., 2019). |
-| underground_ratio | openness | 400/1000 | Lespez et al., 2025 |  |
-| sinuosity |  | 200/- | Lespez et al., 2025; Xia et al., 2010; Rosgen, 1994; Niezgoda & Johnson, 2005 | The sinuosity index (SI) was calculated on 50 x Bankfull width centered on the cross-section |
-| V2 |  |  |  |  |
-| impervious_cover |  | 100m | Schiff & Benoit, 2007; Sharma & Khanal, 2024 | at the reach scale, are better predictors of biotic condition than regional land use |
-| canopy_cover |  | 100/ | Burrell et al. 2014; Ranta et al., 2021 | shading helps regulate water temperature and limit eutrophication, although excessive shading in small streams may reduce biomass production by photosynthetic organisms. |
-| riparian_continuity |  |  | Lespez et al., 2025; Ranta el al., 2021; Xia et al., 2010 | \% of riparian corridors (average of both margins) that has no vegetation cuts. Scale: 500m |
-| riparian_tree_density |  |  | Lespez et al., 2025 |  |
-| stop_count |  |  | NEW |  |
-| poi_programme | Educational tools (number of signs) |  | Lespez et al., 2025 |  |
-| poi_amenities | number of benches, picnic tables, etc. |  | Lespez et al., 2025 |  |
-| slowmob_length |  |  | Lespez et al., 2025 | Mobility options (pedestrian/ bike paths); |
-| entrance_count |  |  | Lespez et al., 2025 | allowing access to the water |
-| open_space_ratio |  |  | Lespez et al., 2025 | surrounding land use? |
-| V3 |  |  |  |  |
-| carbon_sequest | Calculation based on CO2 sequestered by the dominant species per year in a 100m buffer zone. |  | Ranta et al., 2021 |  |
-| lst |  |  | Zhou et al., 2023 (lst); Kim et al., 2008 （air temp） |  |
-| floodplain availability | Available land (m2) to natural floods ((natural area that can receive water in high precipitation periods without causing damages (floods) in constructed areas)). Scale: consider a transept of 10 x stream width over the 500 m stretch |  | Ranta et al., 2021; Verol et al., 2019 | If land is available near streams where the water can expand to in high rainfall periods, this help preventing flood damages in the constructed areas. |
-| habitat_quality |  |  |  | InVEST |
-| landuse_intensity |  |  | Lespez et al., 2025; Xia et al., 2010 |  |
-| poi_access_index |  |  |  |  |
-| transport_access_index |  |  |  |  |
-| slowmob_access_index |  |  | Ranta et al., 2021; Wolsink, 2016 |  |
-| visibility_ratio |  |  | Lespez et al., 2025 |  |
+| **V1** |  |  |  |  |
+| slope | Absolute longitudinal slope: elevation difference between segment endpoints divided by segment length, derived from DTM. | 200/- | Even under similar climatic conditions, different stream morphologies result from differences in channel slope, drainage area, and rainfall intensity (Gregory et al., 1992; Xia et al., 2010). Topography and its derivatives are key for characterising spatial heterogeneity and abiotic environments (Amatulli et al., 2018). | Amatulli et al., 2018; Niezgoda & Johnson, 2005 |
+| valley_width | Mean valley width sampled at cross-sections of 200m segments, measured from valley polygons derived via RCrisp and DTM. | 200/- | Reflects valley geometry and lateral confinement; valley side slope length and angle are key controls on flood capacity and habitat diversity (Xia et al., 2010). | Xia et al., 2010 |
+| valley_depth | Mean valley depth (top–bottom elevation difference) sampled at cross-sections of 200m segments. | 200/- | Reflects incision depth and vertical confinement; deeper valleys indicate greater entrenchment and reduced lateral floodplain connectivity (Xia et al., 2010). | Xia et al., 2010 |
+| distance_to_source | Along-network cumulative distance from segment midpoint to stream source, calculated from mouth direction. | 200/- | Reflects longitudinal position in the river network; widely used to represent downstream gradients in hydrological, geomorphological, and ecological processes (Benda et al., 2004). | Doretto et al., 2020; Benda et al., 2004 |
+| upstream_area | Upstream catchment area derived from DTM flow accumulation (pysheds, D8); log-transformed value (upstream_area_log) used in analysis. | 200/- | A fundamental control on discharge and scaling relationships, modulating the effects of urbanization along the river network (Leopold & Maddock, 1953; Paul & Meyer, 2001). | Paul & Meyer, 2001; Bartos, 2020 |
+| road_barrier | Weighted transport barrier index: sum of intersecting road and railway segment lengths × class weight within a 200m buffer around the stream. | 200/200 | Road infrastructure is a proxy for lateral disconnection from floodplains and longitudinal loss of connectivity at stream intersections, in particular culverts (Grill et al., 2019). | Grill et al., 2019 |
+| underground_ratio | Proportion of stream length tagged as culvert or underground within the 200m segment, derived from OSM. | 200/- | Structural openness of the stream corridor; higher ratio indicates greater channelisation and loss of ecological function (Lespez et al., 2025). | Lespez et al., 2025 |
+| sinuosity | Ratio of channel line length to straight-line endpoint distance, calculated per 200m segment. | 200/- | Reflects channel naturalness and flow dynamics; higher sinuosity indicates greater morphological complexity and habitat potential (Rosgen, 1994; Niezgoda & Johnson, 2005). | Lespez et al., 2025; Xia et al., 2010; Rosgen, 1994 |
+| **V2** |  |  |  |  |
+| impervious_cover | Proportion of impervious surface pixels within a 100m buffer around each 100m segment, from impervious raster. | 100/100 | Reach-scale impervious cover is a better predictor of biotic condition than regional land use (Schiff & Benoit, 2007); reduces infiltration and amplifies runoff. | Schiff & Benoit, 2007; Sharma & Khanal, 2024 |
+| canopy_cover | Proportion of tree canopy pixels within a 50m buffer around each 100m segment, from high-resolution canopy raster. | 100/50 | Shading helps regulate water temperature and limit eutrophication, although excessive shading in small streams may reduce photosynthetic biomass production (Burrell et al., 2014). | Burrell et al., 2014; Ranta et al., 2021 |
+| riparian_width | Mean width of NDVI-based riparian vegetation corridor, sampled as lateral extent of vegetation above threshold within a 10m buffer. | 100/10 | Width of the riparian buffer is a key structural indicator of ecological function, filtering capacity, and lateral connectivity (Pace et al., 2022; Hislop et al., 2025). | Pace et al., 2022; Hislop et al., 2025 |
+| riparian_continuity | Length of uninterrupted riparian vegetation patch along stream corridor, averaged across both sides. | 100/10 | Structural continuity of the riparian buffer; % of riparian corridor with no vegetation cuts along both margins influences the corridor's effectiveness as ecological infrastructure (Lespez et al., 2025). | Lespez et al., 2025; Ranta et al., 2021; Xia et al., 2010 |
+| riparian_tree_density | Mean tree canopy cover density (TCD 2023) within a 10m riparian buffer, normalised to 0–1 scale. | 100/10 | Immediate riparian tree cover is a direct indicator of shade provision, root bank stabilisation, and allochthonous organic matter input (Lespez et al., 2025). | Lespez et al., 2025 |
+| edge_density | Total perimeter of green land-cover patches (ESA classes: tree, shrub, grass, wetland) divided by buffer area (m/ha) within a 150m buffer. | 100/150 | Higher edge density indicates greater landscape fragmentation; reducing fragmentation through green space consolidation is a direct intervention lever for improving ecological corridor function (Finizio et al., 2024; Jaeger, 2000). | Finizio et al., 2024; Jaeger, 2000 |
+| open_space_ratio | Ratio of open/lightly used land cover area (ESA classes: grassland, shrubland, bare) to total buffer area within 100m buffer. | 100/100 | Reflects surrounding land-use permeability and spatial opportunity for ecological intervention or naturalisation near the stream (Lespez et al., 2025). | Lespez et al., 2025 |
+| entrance_count | Count of distinct stream entry points per 400m segment, derived from road–stream intersections clustered spatially (DBSCAN, eps=15m). | 400/- | Physical access points are a prerequisite for public use of and connection to the waterway corridor (Lespez et al., 2025). | Lespez et al., 2025 |
+| slowmob_length | Total length (m) of slow-mobility paths (footway, cycleway, path, pedestrian) within a 400m buffer around each 400m segment. | 400/400 | Slow-mobility infrastructure (pedestrian/bike paths) directly enables non-motorised access to and along the stream corridor (Lespez et al., 2025). | Lespez et al., 2025 |
+| poi_amenities | Count of small public amenities (benches, picnic tables, playgrounds, shelters) within a 400m buffer around each 400m segment. | 400/400 | Presence of amenities supports informal use and dwell time along the stream corridor, enhancing experiential quality (Lespez et al., 2025). | Lespez et al., 2025 |
+| poi_programme | Count of programmed facilities (education, sports, culture, food, civic uses) within a 400m buffer around each 400m segment. | 400/400 | Programmatic richness of the catchment area supports diverse and sustained public use patterns along the stream (Lespez et al., 2025). | Lespez et al., 2025 |
+| stop_count | Count of public transport stops within a 400m buffer around each 400m segment. | 400/400 | Transit access to stream corridors determines which populations can reach and use them, relevant for equitable access. |  |
+| **V3** |  |  |  |  |
+| *V3a. Biodiversity* |  |  |  |  |
+| habitat_quality | Mean InVEST Habitat Quality score within a 100m riparian mask, derived from ESA land cover and habitat threat layers. | 100/- | Integrative outcome indicator for biodiversity-supporting conditions; estimates the relative degradation extent and status of different habitat types in a given region (Aznarez et al., 2022). | InVEST v.3.8.9; Aznarez et al., 2022 |
+| shannon | Shannon diversity index of land-cover classes (ESA) within a 150m buffer. | 100/150 | Land-cover diversity as a biodiversity outcome; higher diversity is associated with greater habitat heterogeneity and species richness potential in riparian environments (Finizio et al., 2024; Aznarez et al., 2022). | Finizio et al., 2024; Aznarez et al., 2022; Lind et al., 2019; Graziano et al., 2022 |
+| ndvi | Mean and SD of NDVI within a 50m riparian buffer, derived from GEE-exported satellite imagery. | 100/50 | Vegetation greenness and vigour as a biodiversity outcome; higher NDVI reflects greater photosynthetic activity and biomass, indicating healthier riparian vegetation (Finizio et al., 2024). | Finizio et al., 2024 |
+| *V3b. Climate adaptation* |  |  |  |  |
+| carbon_sequest | Annual riparian carbon sequestration (tC/ha/yr) derived from multi-year NDVI change (2018–2024) within a 5m riparian buffer, converted via biomass and carbon fraction proxy. | 100/5 | Proxy for carbon storage capacity of the riparian corridor; NDVI-to-biomass conversion reflects vegetation biomass accumulation over time (Ranta et al., 2021). | Ranta et al., 2021 |
+| lst | Mean summer land surface temperature (°C) within a 100m buffer, from Landsat-derived LST raster (2024 summer). | 100/100 | Indicator of urban heat island intensity; blue-green stream corridors contribute to local cooling through evapotranspiration and shading (Zhou et al., 2023; Kim et al., 2008). | Zhou et al., 2023; Kim et al., 2008 |
+| flooding | TBD | 100/- | Higher values indicate greater natural flood attenuation capacity; if floodplain land is available near streams, it helps prevent flood damages in constructed areas (Verol et al., 2019). | Ranta et al., 2021; Verol et al., 2019 |
+| *V3c. Quality of life* |  |  |  |  |
+| visibility_ratio | Proportion of a 200m buffer area around the stream covered by the isovist visibility polygon, computed per 400m segment. | 400/200 | Visual exposure of the stream corridor to surrounding areas relates to perceived presence, attractiveness, and informal surveillance (Lespez et al., 2025; Turner et al., 2001). | Lespez et al., 2025; Turner et al., 2001 |
+| slowmob_access_index | Normalised gravity-weighted accessibility index to slow-mobility paths from stream entry points within 1000m network distance: sum(exp(-γ·t)), normalised. | 400/1000 network | Captures the quality of pedestrian/cycle network connectivity from the stream, supporting active travel to and along the corridor (Wolsink, 2016). | Ranta et al., 2021; Wolsink, 2016 |
+| poi_access_index | Normalised gravity-weighted accessibility index to POIs from stream entry points within 1000m network distance: sum(exp(-γ·t)), normalised. | 400/1000 network | Reflects the functional richness and urban amenity supply reachable from the stream corridor, a key dimension of perceived usability. |  |
+| transport_access_index | Normalised gravity-weighted accessibility index to public transport stops from stream entry points within 1000m network distance: sum(exp(-γ·t)), normalised. | 400/1000 network | Reflects transit connectivity from the stream corridor, influencing equitable access for populations without private transport. |  |
 
 ### V1 morphology? (why only use these for variables)
 
-V1 variables represent relatively stable hydro-morphological context and structural conditions, including valley characteristics, slope, upstream position, and degree of structural modification. These variables are not easily altered through local interventions and are therefore used to derive stream typology.
+V1 variables represent relatively stable hydro-morphological context and structural conditions. These variables are not easily altered through local interventions and are therefore used to derive stream typology.
 
-#### V1a. Hydro-morphological context
+Stream typologies were derived using a set of variables representing relatively stable hydro-morphological and structural context conditions (V1). These variables were selected because they define the underlying physical and spatial constraints within which stream corridor interventions take place, and are not easily altered through typical local-scale restoration or design actions. Specifically, variables such as slope, valley geometry (width and depth), upstream position, channel sinuosity, and structural modification indicators (e.g., transport barrier intensity and underground ratio) capture key dimensions of geomorphological setting, spatial confinement, and infrastructure-induced fragmentation.
 
--   `absolute_slope`
--   `valley_width`
--   `valley_depth`
--   `distance_to_source`
--   `upstream_area`
--   `pop_density`
+By focusing on these context variables, the resulting typology reflects differences in baseline environmental and structural conditions rather than differences in current management or intervention status. This allows the typology to serve as a stable classification of stream corridor contexts, within which the effectiveness and relevance of intervention levers (V2) can be compared and interpreted. In this way, the typology is not intended to directly explain outcome variation, but to structure the analysis of how different interventions perform under different spatial and environmental conditions.
 
-#### V1b. Structural context
+absolute_slope valley_width valley_depth distance_to_source upstream_area_log sinuosity road_barrier_index underground_ratio
 
--   `road_barrier_index`
--   `underground_ratio`
--   `sinuosity`
+### V2
 
-### V2 lulc?
+V2 variables represent actionable and planning-relevant attributes of the stream corridor, including ecological characteristics and accessibility-related factors.
 
-V2 variables represent actionable and planning-relevant attributes of the stream corridor, including ecological characteristics (e.g., canopy cover, riparian structure, imperviousness) and accessibility-related factors (e.g., entrances, slow-mobility networks, and proximity to public transport and points of interest). These variables serve as potential intervention levers.
-
-#### V2a. Eco-spatial intervention variables
-
--   `impervious_density`
--   `canopy_ratio`
--   `riparian_continuity`
--   `riparian_tree_density`
-
-#### V2b. Access and public-use intervention variables
-
--   `stop_count`
--   `poi_programme`
--   `poi_amenities`
--   `slowmob_length`
--   `entrance_count`
-
-#### V2c. Spatial opportunity variables
-
--   `open_space_ratio`
+impervious_cover canopy_cover riparian_width riparian_continuity riparian_tree_density open_space_ratio entrance_count slowmob_length poi_amenities poi_programme stop_count
 
 ### V3
 
 V3 variables represent outcome indicators corresponding to the three primary goals of the study: biodiversity, climate adaptation, and quality of life. These indicators are derived from spatial proxies rather than direct measurements.
 
-#### V3a. Climate regulation
+#### V3a biodiversity
 
--   `carbon_sequest`
--   `lst`
+habitat_quality habitat_heterogeneity_index (shannon_150m)
 
-#### V3b. Biodiversity-supporting conditions
+#### V3b climate adaptation
 
--   `ndvi_0.4_ratio`
--   `habitat_quality`
--   `landuse_intensity`
+carbon_sequest lst flooding
 
-#### V3c. Public accessibility and experiential quality
+#### V3c. quality of life
 
--   `poi_access_index`
--   `transport_access_index`
--   `slowmob_access_index`
--   `visibility_ratio`
+visibility_ratio slowmob_access_index poi_access_index transport_access_index
 
 ## 2.3 Clustering
 
@@ -234,9 +205,15 @@ This step can show the value of developing typology.
 
 Amatulli, G., Domisch, S., Tuanmu, M. N., Parmentier, B., Ranipeta, A., Malczyk, J., & Jetz, W. (2018). A suite of global, cross-scale topographic variables for environmental and biodiversity modeling. *Scientific data*, *5*(1), 180040.
 
+Aznarez, C., Svenning, J. C., Taveira, G., Baró, F., & Pascual, U. (2022). Wildness and habitat quality drive spatial patterns of urban biodiversity. *Landscape and Urban Planning*, *228*, 104570.
+
+@misc{bartos_2020, title = {pysheds: simple and fast watershed delineation in python}, author = {Bartos, Matt}, url = {<https://github.com/mdbartos/pysheds%7D,> year = {2020}, doi = {10.5281/zenodo.3822494} }
+
 Benda, L. E. E., Poff, N. L., Miller, D., Dunne, T., Reeves, G., Pess, G., & Pollock, M. (2004). The network dynamics hypothesis: how channel networks structure riverine habitats. *BioScience*, *54*(5), 413-427.
 
 Doretto, A., Piano, E., & Larson, C. E. (2020). The River Continuum Concept: lessons from the past and perspectives for the future. *Canadian Journal of Fisheries and Aquatic Sciences*, *77*(11), 1853-1864.
+
+Finizio, M., Pontieri, F., Bottaro, C., Di Febbraro, M., Innangi, M., Sona, G., & Carranza, M. L. (2024). Remote sensing for urban biodiversity: A review and meta-analysis. *Remote Sensing*, *16*(23), 4483.
 
 Lespez, L., Germaine, M. A., Gob, F., Tales, E., Thommeret, N., de Milleville, L., ... & Letourneur, M. (2025). A new tool to characterise the socio-environmental dimensions of urban rivers: Urban river socio-environmental index. *Landscape and Urban Planning*, *261*, 105388.
 
