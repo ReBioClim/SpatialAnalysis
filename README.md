@@ -1,12 +1,12 @@
 # ReBioClim urban stream spatial analysis
 
 <p align="center">
-  <img src="notebook/figures/ReBioClim_Logo_Standard_medium.png" alt="ReBioClim" width="260">
+  <img src="notebook/figures/ReBioClim_Logo.png" alt="ReBioClim" width="260">
 </p>
 
 ## Introduction
 
-Urban streams are extensive yet often overlooked ecological and spatial networks in cities, but many have been degraded by channelization, culverting, and surrounding urban development, limiting their capacity to support biodiversity, mitigate urban heat, and provide accessible public spaces. In response to biodiversity loss and climate change, urban streams have growing potential as nature-based solutions, yet their restoration is constrained by fragmented, site-specific assessment methods that are difficult to standardize or scale. This study aims to develop a spatially explicit, open-data-based framework for urban stream restoration by examining how actionable variables relate to multiple outcomes, including biodiversity, climate adaptation, and quality of life, and by identifying effective interventions for different types of stream corridors.
+Urban streams are extensive yet often overlooked ecological and spatial networks in cities. Many urban streams have been degraded by channelization, culverting, and surrounding urban development, limiting their capacity to support biodiversity, mitigate urban heat, and provide accessible public spaces. However, their restoration is constrained by fragmented, site-specific assessment methods that are difficult to standardise or scale. This study aims to develop a spatially explicit, open-data-based framework for urban stream restoration by identifying effective interventions for different types of stream corridors.
 
 This repository documents the **spatial analysis workflow** developed for [ReBioClim](https://www.interreg-central.eu/projects/rebioclim/) (*Restoring urban streams to promote Biodiversity, Climate adaptation and to improve quality of life in cities*), which is an EU Interreg project applied to four Central European cities. The approach uses open geospatial data (OSM, DEMs, land cover, accessibility, and related layers) to build comparable **100, 200, 400 m stream segments**, compute a structured indicator set (**V1** hydro-morphological context, **V2** actionable levers, **V3** outcomes), and group segments into **typologies** that reflect different restoration contexts.
 
@@ -22,38 +22,32 @@ The analysis emphasises **explainable links** between interventions and outcomes
 
 Code: `scripts/` (`01geometry` → `02variable` → `03analysis` → `04visual`).
 
+## Highlights
 
-## Steps
-
-### 1. Analytical workflow
+### Analytical workflow
 
 From stream geometry and variables to typology-based intervention analysis.
 
-![Analytical workflow](notebook/figures/workflow.png)
+![Analytical workflow](notebook/figures/workflow_chart.png)
 
-### 2. Stream network (four cities)
+### Stream network (four cities)
 
 Spatial extent of the urban stream networks used in the case studies.
 
-![Stream distribution across four ReBioClim cities](notebook/figures/streams_distribution_four_cities.png)
+![Stream distribution across four ReBioClim cities](notebook/figures/streams_distribution_map.png)
 
-### 3. Typology
+### Typology
 
 Profiles of typology clusters derived from V1 and V2 variables (context and levers).
 
-![Typology cluster heatmap](notebook/figures/v1v2_typology_cluster_heatmap.png)
+![Typology cluster heatmap](notebook/figures/v1v2_typology_heatmap.png)
 
-### 4. Intervention optimisation
+### Intervention optimisation
 
 Baseline vs optimised composite V3 performance and recommended intervention levers by typology.
 
-![Intervention optimisation summary](notebook/figures/fig_intervention_summary.png)
+![Effective intervention by typology](notebook/figures/effective_intervention.png)
 
-### 5. Partial dependence by typology
-
-How the composite V3 score responds to the top intervention variables in each typology.
-
-![Partial dependence plots for all typologies](notebook/figures/fig_pdp_all_clusters.png)
 
 ---
 
