@@ -1,14 +1,68 @@
-# ReBioClim urban spatial analysis
+# ReBioClim urban stream spatial analysis
 
-This GitHub repository contains the reproducible workflow of the urban spatial analysis conducted on the four cases of the [ReBioClim](https://www.interreg-central.eu/projects/rebioclim/) (Restoring urban streams to promote Biodiversity, Climate adaptation and to improve quality of life in cities) project.
+<p align="center">
+  <img src="notebook/figures/ReBioClim_Logo.png" alt="ReBioClim" width="260">
+</p>
 
-The workflow consists of the following steps:
+## Introduction
 
-1. Data collection
-2. Pre-processing
-3. Delineation of spatial units
-4. Calculation of variables per unit
-5. GNN as a spatial variable as well
-6. Clustering for typologies
-7. Calculation of scores for restoration potentials
-8. Synergies and trade-offs of variables in the restoration potentials
+Urban streams are extensive yet often overlooked ecological and spatial networks in cities. Many urban streams have been degraded by channelization, culverting, and surrounding urban development, limiting their capacity to support biodiversity, mitigate urban heat, and provide accessible public spaces. However, their restoration is constrained by fragmented, site-specific assessment methods that are difficult to standardise or scale. This study aims to develop a spatially explicit, open-data-based framework for urban stream restoration by identifying effective interventions for different types of stream corridors.
+
+This repository documents the **spatial analysis workflow** developed for [ReBioClim](https://www.interreg-central.eu/projects/rebioclim/) (*Restoring urban streams to promote Biodiversity, Climate adaptation and to improve quality of life in cities*), which is an EU Interreg project applied to four Central European cities. The approach uses open geospatial data (OSM, DEMs, land cover, accessibility, and related layers) to build comparable **100, 200, 400 m stream segments**, compute a structured indicator set (**V1** hydro-morphological context, **V2** actionable levers, **V3** outcomes), and group segments into **typologies** that reflect different restoration contexts.
+
+The analysis emphasises **explainable links** between interventions and outcomes: per-typology **XGBoost** surrogate models and **SHAP** values show which levers matter where, and constrained optimisation explores realistic intervention scenarios. The code in `scripts/` is organised for reproducibility; methodological detail is in `notebook/rebioclim_workflow.qmd`.
+
+
+## What this repo does
+
+1. Stream geometry and 100 m segments (OSM, DEM).
+2. Variable calculation and merge (V1, V2, V3).
+3. Typology clustering and method comparison.
+4. Intervention optimisation with explainable ML.
+
+Code: `scripts/` (`01geometry` → `02variable` → `03analysis` → `04visual`).
+
+## Highlights
+
+### Analytical workflow
+
+From stream geometry and variables to typology-based intervention analysis.
+
+![Analytical workflow](notebook/figures/workflow_chart.png)
+
+### Stream network (four cities)
+
+Spatial extent of the urban stream networks used in the case studies.
+
+![Stream distribution across four ReBioClim cities](notebook/figures/streams_distribution_map.png)
+
+### Typology
+
+Profiles of typology clusters derived from V1 and V2 variables (context and levers).
+
+![Typology cluster heatmap](notebook/figures/v1v2_typology_heatmap.png)
+
+### Intervention optimisation
+
+Baseline vs optimised composite V3 performance and recommended intervention levers by typology.
+
+![Effective intervention by typology](notebook/figures/effective_intervention.png)
+
+
+---
+
+## Funding
+
+**Interreg CENTRAL EUROPE 2021–2027 CE0200754 ReBioClim** funded by the European Union.
+
+## License
+
+[MIT License](LICENSE).
+
+## Citation
+
+See [CITATION.cff](CITATION.cff).
+
+## Contact
+
+Yehan Wu, Claudiu Forgaci — Delft University of Technology (ReBioClim). Issues: [GitHub Issues](https://github.com/ReBioClim/SpatialAnalysis/issues).
