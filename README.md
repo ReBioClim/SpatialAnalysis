@@ -57,11 +57,11 @@ Baseline vs optimised composite V3 performance and recommended intervention leve
 
 ## License
 
-[MIT License](LICENSE).
+MIT License. Copyright (c) 2025–2026 ReBioClim project partners and contributors. You may use, copy, modify, merge, publish, distribute, sublicense, and sell copies of this repository and its code, provided the copyright notice and this permission notice are included. The repository and its contents are provided “as is”, without warranty of any kind.
 
 ## Citation
 
-See [CITATION.cff](CITATION.cff).
+Wu, Y., & Forgaci, C. (2026). *ReBioClim urban stream spatial analysis* (Version 0.1.0). ReBioClim / Interreg CENTRAL EUROPE CE0200754.
 
 ## Contact
 
