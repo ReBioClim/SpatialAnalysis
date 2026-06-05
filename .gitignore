@@ -5,3 +5,7 @@ unused/
 scripts/.DS_Store
 .DS_Store
 .vscode/settings.json
+/.quarto/
+_site/
+archive/
+.tmp/
