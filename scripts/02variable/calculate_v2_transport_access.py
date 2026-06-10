@@ -19,11 +19,23 @@ stream_belt_m = 10
 entry_cluster_eps_m = 10
 stop_buffer_m = 400
 
-excluded_road_classes = {
-    "motorway",
-    "motorway_link",
-    "trunk",
-    "trunk_link",
+walkable_road_classes = {
+    "footway",
+    "path",
+    "pedestrian",
+    "steps",
+    "cycleway",
+    "bridleway",
+    "living_street",
+    "residential",
+    "service",
+    "unclassified",
+    "track",
+    "track_grade1",
+    "track_grade2",
+    "track_grade3",
+    "track_grade4",
+    "track_grade5",
 }
 
 
@@ -55,7 +67,7 @@ for city in cities:
 
     if "fclass" in r.columns:
         road_class = r["fclass"].astype(str).str.lower()
-        r = r[~road_class.isin(excluded_road_classes)].copy()
+        r = r[road_class.isin(walkable_road_classes)].copy()
 
     if len(r) == 0:
         results.append(s)
