@@ -108,20 +108,23 @@ def accessibility_from_entries(graph, entries, origins, threshold_m, cutoff_m):
     min_distance = {}
 
     for segment_id, entry_data in segment_entries.items():
-        source_nodes = {node for node, _ in entry_data}
-        min_entry_snap = min(snap for _, snap in entry_data)
-        lengths = nx.multi_source_dijkstra_path_length(
+        source_node = ("source", segment_id)
+        for entry_node, entry_snap_dist in entry_data:
+            graph.add_edge(source_node, entry_node, weight=entry_snap_dist)
+
+        lengths = nx.single_source_dijkstra_path_length(
             graph,
-            source_nodes,
+            source_node,
             cutoff=cutoff_m,
             weight="weight",
         )
+        graph.remove_node(source_node)
 
         reached = set()
         best = []
         for origin_node, network_dist in lengths.items():
             for origin_id, origin_snap in origin_lookup.get(origin_node, []):
-                total_dist = min_entry_snap + network_dist + origin_snap
+                total_dist = network_dist + origin_snap
                 if total_dist <= threshold_m:
                     reached.add(origin_id)
                 if total_dist <= cutoff_m:
