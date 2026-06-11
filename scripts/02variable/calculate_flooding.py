@@ -1,96 +1,69 @@
-import numpy as np
-import pandas as pd
 import geopandas as gpd
+import numpy as np
+import os
+import rasterio
+from rasterio.mask import mask
+from shapely.geometry import mapping
+
+# Floodplain availability proxy based on HAND contour flood-hazard mapping
+# Nobre et al., 2016, HAND contour: a new proxy predictor of inundation extent: Mapping Flood Hazard Potential Using Topography
 
 
-segments_path = "data/input/streamall_100m_segments_from_mouth.gpkg"
-riparian_path = "data/production/variables/v2_riparian_width.gpkg"
-floodplain_path = "data/production/variables/v2_floodplain.gpkg"
-slope_path = "data/production/variables/v1_slope.gpkg"
-upstream_path = "data/production/variables/v1_upstream_area.gpkg"
-
+segments_path = "data/input/streamall_200m_segments_from_mouth.gpkg"
+dem_path = "data/input/DTM_30m.tif"
 output_path = "data/production/variables/v3_flooding.gpkg"
 
 
-def zscore(s):
-    arr = pd.to_numeric(s, errors="coerce").astype(float)
-    return (arr - np.nanmean(arr)) / np.nanstd(arr)
-
-
-def map_200m(segments, vars200, col):
-    out = pd.Series(np.nan, index=segments.index)
-
-    seg_mid = (
-        pd.to_numeric(segments["start_distance"], errors="coerce")
-        + pd.to_numeric(segments["end_distance"], errors="coerce")
-    ) / 2
-
-    for mid_id in segments["merged_id"].dropna().unique():
-        seg_idx = segments.index[segments["merged_id"] == mid_id]
-        subset = vars200[vars200["merged_id"] == mid_id]
-
-        for i in seg_idx:
-            m = seg_mid.loc[i]
-            match = subset[(subset["start_distance"] <= m) & (m <= subset["end_distance"])]
-
-            if len(match):
-                out.at[i] = match.iloc[0][col]
-
-    return out
-
-
-def qclass(s):
-    labels = ["very_low", "low", "moderate", "high", "very_high"]
-    v = pd.to_numeric(s, errors="coerce").dropna()
-    cls = pd.qcut(v, q=5, labels=labels, duplicates="drop")
-    out = pd.Series(np.nan, index=s.index)
-    out.loc[v.index] = cls.astype(str)
-    return out
+def raster_values(src, geom):
+    try:
+        img, _ = mask(src, [mapping(geom)], crop=True, filled=False, all_touched=True)
+    except ValueError:
+        return np.array([], dtype=float)
+    vals = img[0].compressed().astype(float)
+    return vals[np.isfinite(vals)]
 
 
 segments = gpd.read_file(segments_path).to_crs("EPSG:25833")
 
-result = segments[["segment100_id", "merged_id", "start_distance", "end_distance", "geometry"]].copy()
+
+# floodplain availability in 100m buffer
+buffer_100 = segments.copy()
+buffer_100["geometry"] = buffer_100.geometry.buffer(100)
+
+with rasterio.open(dem_path) as src:
+    stream_sample_m = max(abs(src.transform.a), abs(src.transform.e)) / 2
+
+    def calc(row):
+        stream_geom = segments.loc[row.name, "geometry"]
+        stream_vals = raster_values(src, stream_geom.buffer(stream_sample_m))
+        if len(stream_vals) == 0:
+            return np.nan, np.nan, np.nan, np.nan, 0
+
+        stream_elevation = float(np.nanmedian(stream_vals))
+        buffer_vals = raster_values(src, row.geometry)
+        valid_count = len(buffer_vals)
+        if valid_count == 0:
+            return stream_elevation, np.nan, np.nan, np.nan, 0
+
+        relative_elevation = buffer_vals - stream_elevation
+        avail_1m = float(np.mean(relative_elevation <= 1))
+        avail_2m = float(np.mean(relative_elevation <= 2))
+        avail_3m = float(np.mean(relative_elevation <= 3))
+
+        return stream_elevation, avail_1m, avail_2m, avail_3m, valid_count
+
+    values = buffer_100.apply(calc, axis=1, result_type="expand")
 
 
-riparian = gpd.read_file(riparian_path).to_crs("EPSG:25833")
-col = "riparian_width_mean" if "riparian_width_mean" in riparian else "riparian_width_median"
-result = result.merge(
-    riparian[["segment100_id", col]].rename(columns={col: "riparian_width_m"}),
-    on="segment100_id",
-    how="left",
-)
-
-
-floodplain = gpd.read_file(floodplain_path).to_crs("EPSG:25833")
-result = result.merge(
-    floodplain[["segment100_id", "floodplain_ratio_250m"]],
-    on="segment100_id",
-    how="left",
-)
-
-result["floodplain_width_m"] = (
-    pd.to_numeric(result["floodplain_ratio_250m"], errors="coerce") * 500
-).clip(0, 500)
-
-
-slope = gpd.read_file(slope_path).to_crs("EPSG:25833")
-upstream = gpd.read_file(upstream_path).to_crs("EPSG:25833")
-
-result["slope"] = map_200m(result, slope, "longitudinal_slope")
-result["area"] = map_200m(result, upstream, "upstream_area_m2")
-result["area_log"] = np.log1p(pd.to_numeric(result["area"], errors="coerce"))
-
-
-z1 = zscore(result["floodplain_width_m"])
-z2 = zscore(result["riparian_width_m"])
-z3 = -zscore(result["slope"])
-z4 = zscore(result["area_log"])
-
-
-comp = pd.concat([z1, z2, z3, z4], axis=1)
-result["flooding_proxy_v3_clim"] = comp.mean(axis=1)
-result.loc[comp.notna().sum(axis=1) < 3, "flooding_proxy_v3_clim"] = np.nan
-
-
-result.to_file(output_path, driver="GPKG")
+cols = [
+    "stream_elevation_m",
+    "floodplain_availability_1m",
+    "floodplain_availability",
+    "floodplain_availability_3m",
+    "floodplain_valid_cell_count",
+]
+values.columns = cols
+segments = segments.join(values)
+if os.path.exists(output_path):
+    os.remove(output_path)
+segments.to_file(output_path, driver="GPKG")

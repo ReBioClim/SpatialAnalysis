@@ -13,4 +13,4 @@ out = segments[["segment200_id", "geometry"]].copy()
 out["sinuosity"] = segments.geometry.length / straight
 out.loc[straight == 0, "sinuosity"] = np.nan
 
-out.to_file("data/production/variables/v2_sinuosity.gpkg", driver="GPKG")
+out.to_file("data/production/variables/v1_sinuosity.gpkg", driver="GPKG")

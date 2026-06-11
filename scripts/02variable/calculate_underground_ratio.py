@@ -61,6 +61,6 @@ result["und_ratio"] = (result["und_len"] / result["seg_len"]).clip(0, 1).fillna(
 
 
 result[["segment200_id", "geometry", "und_ratio"]].to_file(
-    "data/production/variables/v2_underground_ratio.gpkg",
+    "data/production/variables/v1_underground_ratio.gpkg",
     driver="GPKG"
 )
