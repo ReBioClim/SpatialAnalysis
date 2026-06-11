@@ -19,6 +19,7 @@ target_year = "2025"
 ndvi_tiles = sorted([
     p for p in glob(os.path.join(ndvi_dir, "s2_ndvi_growing_season*.tif"))
     if target_year in os.path.basename(p)])
+multiband_tiles = []
 
 
 # load segments

@@ -15,7 +15,7 @@ output_path = "data/production/variables/v2_riparian_width.gpkg"
 
 ndvi_threshold = 0.4
 transect_step = 10.0
-transect_half = 50.0
+transect_half = 10.0
 
 
 # mosaic

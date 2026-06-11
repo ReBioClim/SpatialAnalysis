@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -20,15 +21,14 @@ os.makedirs(inputs, exist_ok=True)
 lulc_fixed_path = os.path.join(inputs, "lulc_bas_discrete_esa.tif")
 pools_csv = os.path.join(inputs, "carbon_pools.csv")
 args_json = os.path.join(inputs, "carbon_args.json")
-output_path = "data/production/variables/v3_carbon_sequest.gpkg"
+output_path = "data/production/variables/v3_carbon_storage.gpkg"
 
 
 streams = gpd.read_file(stream_path).to_crs("EPSG:25833")
 aoi = streams.buffer(1000).union_all()
 
 
-# carbon storage from current LULC, kept under the historical sequest output path
-# clip ESA LULC to AOI and snap to discrete ESA class codes
+# 1) clip ESA LULC to AOI and snap to discrete ESA class codes
 with rasterio.open(lulc_path) as src:
     lulc, transform = mask(src, [aoi], crop=True, filled=True, nodata=0)
     lulc = lulc[0]
@@ -51,32 +51,32 @@ with rasterio.open(lulc_fixed_path, "w", **profile) as dst:
     dst.write(lulc_fixed, 1)
 
 
-# carbon pools table
+# 2) carbon pools table
 # lucode, c_above, c_below, c_soil, c_dead   (units: Mg C / ha)
 pools = [
     # forest / woody
-    (10, 60.0, 13.8, 80.0, 5.0),
-    (20, 12.0, 3.0, 50.0, 0.5),
+    (10,  60.0,  13.8, 80.0, 5.0),
+    (20,  12.0,   3.0, 50.0, 0.5),
     # grass / crop
-    (30, 3.5, 9.0, 75.0, 0.0),
-    (40, 5.0, 0.5, 50.0, 0.0),
+    (30,   3.5,   9.0, 75.0, 0.0),
+    (40,   5.0,   0.5, 50.0, 0.0),
     # urban
-    (50, 1.0, 0.2, 30.0, 0.0),
+    (50,   1.0,   0.2, 30.0, 0.0),
     # bare / snow / water
-    (60, 0.1, 0.05, 15.0, 0.0),
-    (70, 0.0, 0.0, 0.0, 0.0),
-    (80, 0.0, 0.0, 0.0, 0.0),
+    (60,   0.1,  0.05, 15.0, 0.0),
+    (70,   0.0,   0.0,  0.0, 0.0),
+    (80,   0.0,   0.0,  0.0, 0.0),
     # wetland / mangrove / lichen
-    (90, 5.0, 5.0, 200.0, 0.5),
-    (95, 100.0, 30.0, 250.0, 5.0),
-    (100, 0.5, 0.3, 60.0, 0.0),
+    (90,   5.0,   5.0, 200.0, 0.5),
+    (95, 100.0,  30.0, 250.0, 5.0),
+    (100,  0.5,   0.3, 60.0, 0.0),
 ]
 pd.DataFrame(pools, columns=["lucode", "c_above", "c_below", "c_soil", "c_dead"]).to_csv(
     pools_csv, index=False
 )
 
 
-# run InVEST Carbon (storage-only: no alternate scenario, no valuation)
+# 3) run InVEST Carbon (storage-only mode: no alternate scenario, no valuation)
 args = {
     "workspace_dir": workspace,
     "results_suffix": "esa25833",
@@ -91,7 +91,8 @@ with open(args_json, "w", encoding="utf-8") as f:
 carbon.execute(args)
 
 
-# per-segment mean of total carbon raster inside 100 m buffer
+# 4) per-segment mean of total carbon raster inside 100 m buffer
+# InVEST 3.19 writes c_storage_bas_<suffix>.tif (Mg C/ha, sum of 4 pools)
 totc_candidates = sorted(glob.glob(os.path.join(workspace, "c_storage_bas*.tif")))
 if not totc_candidates:
     totc_candidates = sorted(glob.glob(os.path.join(workspace, "tot_c_bas*.tif")))

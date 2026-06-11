@@ -1,22 +1,35 @@
 import geopandas as gpd
 import numpy as np
+import os
 import rasterio
 from pysheds.grid import Grid
 from rasterio.io import MemoryFile
 from rasterio.mask import mask
 from shapely.geometry import mapping
 
+# Compatibility for NumPy >= 2 where np.in1d is removed.
+if not hasattr(np, "in1d"):
+    np.in1d = np.isin
+
 
 segments = gpd.read_file("data/input/streamall_200m_segments_from_mouth.gpkg")
+target_crs = "EPSG:25833"
+segments = segments.to_crs(target_crs)
 dem_path = "data/input/DTM_30m.tif"
+dem_tmp_path = "data/production/variables/_tmp_dtm_30m_epsg25833.tif"
 
 with rasterio.open(dem_path) as src:
+    dem_arr = src.read(1)
     profile = src.profile.copy()
+    profile.update(crs=target_crs)
     pixel_area = abs(src.transform.a * src.transform.e)
     buffer_size = max(abs(src.transform.a), abs(src.transform.e))
 
-grid = Grid.from_raster(dem_path, data_name="dem")
-dem = grid.read_raster(dem_path)
+with rasterio.open(dem_tmp_path, "w", **profile) as dst:
+    dst.write(dem_arr, 1)
+
+grid = Grid.from_raster(dem_tmp_path, data_name="dem")
+dem = grid.read_raster(dem_tmp_path)
 dem = grid.fill_depressions(dem)
 dem = grid.resolve_flats(dem)
 flow_dir = grid.flowdir(dem)
@@ -48,3 +61,6 @@ out = segments[["segment200_id", "geometry"]].copy()
 out["upstream_area_m2"] = values_m2
 out["upstream_area_log"] = values_log
 out.to_file("data/production/variables/v1_upstream_area.gpkg", driver="GPKG")
+
+if os.path.exists(dem_tmp_path):
+    os.remove(dem_tmp_path)
