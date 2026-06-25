@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Yehan Wu, Claudiu Forgaci, R1.2.3 partners">
+<meta name="dcterms.date" content="2026-06-25">
+
+<title>Typology-based spatial optimization for urban stream restoration</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-a14e3238c51140e99ccc48519b6ed9ce.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link href="../site_libs/tabwid-1.1.3/tabwid.css" rel="stylesheet">
+<script src="../site_libs/tabwid-1.1.3/tabwid.js"></script>
+
+
+<link rel="stylesheet" href="styles/paper-tables.css">
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-search-results"></div>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#abstract" id="toc-abstract" class="nav-link active" data-scroll-target="#abstract">Abstract</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">1. Introduction</a></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">2. Methods</a>
+  <ul class="collapse">
+  <li><a href="#workflow-overview" id="toc-workflow-overview" class="nav-link" data-scroll-target="#workflow-overview">2.1 Workflow overview</a></li>
+  <li><a href="#study-area" id="toc-study-area" class="nav-link" data-scroll-target="#study-area">2.2 Study area</a></li>
+  <li><a href="#stream-network-extraction-and-segmentation" id="toc-stream-network-extraction-and-segmentation" class="nav-link" data-scroll-target="#stream-network-extraction-and-segmentation">2.3 Stream network extraction and segmentation</a></li>
+  <li><a href="#variable-system" id="toc-variable-system" class="nav-link" data-scroll-target="#variable-system">2.4 Variable system</a></li>
+  <li><a href="#stream-corridor-typology" id="toc-stream-corridor-typology" class="nav-link" data-scroll-target="#stream-corridor-typology">2.5 Stream corridor typology</a></li>
+  <li><a href="#optimization-model" id="toc-optimization-model" class="nav-link" data-scroll-target="#optimization-model">2.6 Optimization model</a>
+  <ul class="collapse">
+  <li><a href="#overall-outcome-score" id="toc-overall-outcome-score" class="nav-link" data-scroll-target="#overall-outcome-score">2.6.1 Overall outcome score</a></li>
+  <li><a href="#predictive-model" id="toc-predictive-model" class="nav-link" data-scroll-target="#predictive-model">2.6.2 Predictive model</a></li>
+  <li><a href="#shap-interpretation" id="toc-shap-interpretation" class="nav-link" data-scroll-target="#shap-interpretation">2.6.3 SHAP interpretation</a></li>
+  <li><a href="#constrained-optimization" id="toc-constrained-optimization" class="nav-link" data-scroll-target="#constrained-optimization">2.6.4 Constrained optimization</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">3. Results</a>
+  <ul class="collapse">
+  <li><a href="#variable-outputs" id="toc-variable-outputs" class="nav-link" data-scroll-target="#variable-outputs">3.1 Variable outputs</a></li>
+  <li><a href="#stream-corridor-typology-1" id="toc-stream-corridor-typology-1" class="nav-link" data-scroll-target="#stream-corridor-typology-1">3.2 Stream corridor typology</a>
+  <ul class="collapse">
+  <li><a href="#classification-performance" id="toc-classification-performance" class="nav-link" data-scroll-target="#classification-performance">3.2.1 Classification performance</a></li>
+  <li><a href="#typology-profiles" id="toc-typology-profiles" class="nav-link" data-scroll-target="#typology-profiles">3.2.2 Typology profiles</a></li>
+  <li><a href="#spatial-distribution-across-cities" id="toc-spatial-distribution-across-cities" class="nav-link" data-scroll-target="#spatial-distribution-across-cities">3.2.3 Spatial distribution across cities</a></li>
+  </ul></li>
+  <li><a href="#intervention-effectiveness" id="toc-intervention-effectiveness" class="nav-link" data-scroll-target="#intervention-effectiveness">3.3 Intervention effectiveness</a>
+  <ul class="collapse">
+  <li><a href="#overall-v3-performance-by-typology" id="toc-overall-v3-performance-by-typology" class="nav-link" data-scroll-target="#overall-v3-performance-by-typology">3.3.1 Overall V3 performance by typology</a></li>
+  <li><a href="#context-dependency-of-intervention-priorities" id="toc-context-dependency-of-intervention-priorities" class="nav-link" data-scroll-target="#context-dependency-of-intervention-priorities">3.3.2 Context-dependency of intervention priorities</a></li>
+  <li><a href="#optimal-intervention-scenarios-per-typology" id="toc-optimal-intervention-scenarios-per-typology" class="nav-link" data-scroll-target="#optimal-intervention-scenarios-per-typology">3.3.3 Optimal intervention scenarios per typology</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion">4. Discussion</a>
+  <ul class="collapse">
+  <li><a href="#typology-based-design-implications" id="toc-typology-based-design-implications" class="nav-link" data-scroll-target="#typology-based-design-implications">4.1 Typology-based design implications</a></li>
+  <li><a href="#limitations-and-future-work" id="toc-limitations-and-future-work" class="nav-link" data-scroll-target="#limitations-and-future-work">4.2 Limitations and future work</a></li>
+  </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">5. Conclusion</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="paper_draft.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Typology-based spatial optimization for urban stream restoration</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Yehan Wu, Claudiu Forgaci, R1.2.3 partners </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 25, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="abstract" class="level1">
+<h1>Abstract</h1>
+<p>xxxxxxx</p>
+</section>
+<section id="introduction" class="level1">
+<h1>1. Introduction</h1>
+<p>Urban streams form extensive yet often overlooked ecological and spatial networks within cities (Paul &amp; Meyer, 2001; Benda et al., 2004). Despite their widespread presence, many urban streams are heavily modified through channelization, culverting, and surrounding urban development, resulting in degraded ecological conditions and limited social functionality. These transformations reduce their capacity to support biodiversity, mitigate urban heat, and provide accessible public spaces.</p>
+<p>In the context of increasing environmental challenges, including biodiversity loss and climate change, urban streams have the potential to function as nature-based solutions that simultaneously enhance ecological performance and improve urban livability (Raymond et al., 2017; Ranta et al., 2021). However, their restoration and management remain constrained by fragmented assessment approaches. Existing evaluations are typically based on site-specific field surveys, which are time-consuming, difficult to standardize, and not scalable to large urban stream networks (Ranta et al., 2021; Lespez et al., 2025). Restoration outcomes depend not only on local reach conditions, but also on riparian structure, accessibility, and surrounding urban development (Beechie et al., 2010; Palmer et al., 2014; Wohl et al., 2015).</p>
+<p>Recent advances in open geospatial data offer new opportunities to assess urban stream conditions at scale (Amatulli et al., 2018; Zanaga et al., 2022; Finizio et al., 2024). Nevertheless, most existing studies focus on descriptive assessments or composite indices (Ranta et al., 2021; Lespez et al., 2025), which often obscure underlying mechanisms and provide limited guidance for practical interventions. There remains a lack of workflows that can both identify restoration needs and connect spatial analysis to planning strategies (Bernhardt et al., 2005; Wohl et al., 2015). In particular, many assessment approaches do not clearly distinguish between relatively stable context conditions, variables that can be changed through intervention, and outcome variables, even though these three types of variables play different roles in restoration decision-making.</p>
+<p>This distinction is important for urban stream planning. In this study, the stream corridor is described through three types of information: relatively stable background conditions, corridor attributes that can be influenced by planning or design, and outcome variables. Hydro-morphological and infrastructural conditions such as slope, valley confinement, upstream position, culverting, and road barriers define the context within which interventions take place (Benda et al., 2004; Xia et al., 2010; Grill et al., 2019). By contrast, variables such as impervious cover, canopy cover, riparian vegetation structure, open space, entrances, slow-mobility paths, public transport, and program access are more directly connected to planning or design action (Schiff &amp; Benoit, 2007; Pace et al., 2022; Lespez et al., 2025). Outcome variables such as habitat quality, vegetation condition, land surface temperature, carbon storage, floodplain availability, visibility, and network-based access describe the biodiversity, climate adaptation, and quality-of-life goals that restoration seeks to improve (Aznarez et al., 2022; Zhou et al., 2023; Sharp et al., 2024).</p>
+<p>This study emphasizes the relationships between variables that can be changed through intervention and multiple outcome variables, and seeks to provide interpretable guidance for optimizing restoration measures in urban stream corridors. The framework connects segment-scale open-data mapping, stream corridor typology, typology-specific predictive modeling, and constrained intervention optimization, while keeping the main focus on why different corridor contexts require different restoration priorities.</p>
+<p>Therefore, the aim of this study is to develop a spatially explicit, open-data-based framework to support urban stream restoration. Specifically, it addresses the key question: for different types of stream corridors, what types of interventions are most effective to improve biodiversity, climate adaptation, and quality of life?</p>
+<hr>
+</section>
+<section id="methods" class="level1">
+<h1>2. Methods</h1>
+<section id="workflow-overview" class="level2">
+<h2 class="anchored" data-anchor-id="workflow-overview">2.1 Workflow overview</h2>
+<p>The workflow contains the following stages:</p>
+<ol type="1">
+<li>Stream geometry cleaning and segmentation.</li>
+<li>Variable calculation (V1, V2, V3).</li>
+<li>Merge all variables to 100 m segment level.</li>
+<li>Clustering and interpretation.</li>
+<li>Relate V2 and V3 for each cluster to find the most effective interventions.</li>
+</ol>
+<p>The analysis uses open data sources including OpenStreetMap, ESA WorldCover, Copernicus products, Landsat imagery, and GBIF records.</p>
+<div id="fig-workflow" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-workflow-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/workflow_chart.png" class="img-fluid figure-img" style="width:50.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-workflow-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Workflow.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="study-area" class="level2">
+<h2 class="anchored" data-anchor-id="study-area">2.2 Study area</h2>
+<p>The framework was applied to four Central European cities: Dresden (Germany), Poznan (Poland), Jablonec nad Nisou (Czech Republic), and Senica (Slovakia). The cities were selected to cover different urban sizes and stream settings, from large urban floodplain systems to small mountain and lowland cities. All spatial analyses were carried out in EPSG:25833 (ETRS89 / UTM zone 33N), and the same scripts and parameter settings were used for all cities (<a href="#fig-study-area" class="quarto-xref">Figure&nbsp;2</a>).</p>
+<div id="fig-study-area" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-study-area-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/study_area_cities.png" class="img-fluid figure-img" style="width:88.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-study-area-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Study area: four Central European cities with stream distribution maps.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="stream-network-extraction-and-segmentation" class="level2">
+<h2 class="anchored" data-anchor-id="stream-network-extraction-and-segmentation">2.3 Stream network extraction and segmentation</h2>
+<p>The stream network was extracted from OpenStreetMap using waterway tags for streams, drains, ditches, and culverts. Isolated drain and ditch segments not connected to the broader waterway network were removed. Named stream reaches were dissolved to continuous lines, and unnamed reaches were merged by proximity at a 2 m threshold in EPSG:25833. Segments shorter than 100 m after merging were excluded from the final network.</p>
+<p>Mouth points for each stream line were detected from a 30 m digital terrain model (DTM) and used as the downstream anchor for segment generation. From each mouth, the stream was divided into 100 m, 200 m, and 400 m segments measured along the network in the upstream direction. This mouth-anchored segmentation ensures that segment boundaries are topologically consistent across scale and that upstream catchment position is directly encoded in the distance-to-source variable. The 100 m layer served as the primary unit of analysis throughout the typology and optimization stages.</p>
+</section>
+<section id="variable-system" class="level2">
+<h2 class="anchored" data-anchor-id="variable-system">2.4 Variable system</h2>
+<p>Variables are organized into three groups. V1 variables represent relatively stable hydro-morphological context and structural conditions. V2 variables represent intervention-related attributes of the stream corridor, including ecological characteristics and accessibility-related factors. V3 variables represent outcome variables corresponding to the three primary goals of the study: biodiversity, climate adaptation, and quality of life. The full variable list is shown in <span class="citation" data-cites="table-variable-inventory">@table-variable-inventory</span>.</p>
+<div class="cell" data-tbl-cap="Variable list.">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-6a547006{}.cl-6a5193a4{font-family:'Helvetica';font-size:8pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a5193ae{font-family:'Helvetica';font-size:8pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a52a596{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:2pt;padding-right:2pt;line-height: 1;background-color:transparent;}.cl-6a52b00e{width:1in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b00f{width:2in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b010{width:0.5in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b011{width:0.8in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b012{width:1in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b018{width:2in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b019{width:0.5in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b01a{width:0.8in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b01b{width:1in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b01c{width:2in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b01d{width:0.5in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a52b01e{width:0.8in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-6a547006"><caption><p>Variable list.</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-6a52b00e"><p class="cl-6a52a596"><span class="cl-6a5193a4">Variable</span></p></th><th class="cl-6a52b00f"><p class="cl-6a52a596"><span class="cl-6a5193a4">Definition</span></p></th><th class="cl-6a52b010"><p class="cl-6a52a596"><span class="cl-6a5193a4">Scale (m)</span></p></th><th class="cl-6a52b00f"><p class="cl-6a52a596"><span class="cl-6a5193a4">Rationale</span></p></th><th class="cl-6a52b011"><p class="cl-6a52a596"><span class="cl-6a5193a4">Source</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">**V1**</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">slope</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Absolute longitudinal slope from DTM elevation differences between segment endpoints divided by segment length.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Channel morphology varies with slope, drainage area, and rainfall intensity. Topographic derivatives characterise abiotic setting.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Gregory et al. 1992; Xia et al. 2010; Amatulli et al. 2018; Niezgoda and Johnson 2005</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">valley_depth</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Mean valley depth from DTM-based valley polygons.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Incision depth indicates vertical confinement and floodplain connectivity.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">rcrisp (Forgaci and Nattino 2025a)</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">distance_to_source</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Along-network distance from segment midpoint to stream source.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Longitudinal position in the network structures downstream ecological gradients.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Benda et al. 2004; Doretto et al. 2020</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">upstream_area</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Upstream catchment area from DTM flow accumulation; log-transformed for analysis.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Catchment size controls discharge and urbanisation effects along the network.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Leopold and Maddock 1953; Paul and Meyer 2001; Bartos 2020</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">road_barrier</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Road and railway crossing density per unit stream length.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Transport infrastructure fragments longitudinal and lateral connectivity.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Grill et al. 2019</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">underground_ratio</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Percentage of segment length tagged as culvert or underground in OSM.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Structural openness of the corridor.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Lespez et al. 2025</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">sinuosity</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Channel path length divided by straight endpoint distance.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Planform complexity and habitat potential.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Rosgen 1994; Niezgoda and Johnson 2005; Lespez et al. 2025; Xia et al. 2010</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">**V2**</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">impervious_cover</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Percentage of impervious surface within a 100 m buffer.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/100</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Reach-scale impervious cover predicts biotic condition better than regional land use.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Schiff and Benoit 2007; Sharma and Khanal 2024</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">canopy_cover</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Percentage of tree canopy within a 50 m buffer.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/50</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Canopy shading regulates stream temperature.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Burrell et al. 2014; Ranta et al. 2021</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">riparian_width</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Mean width of connected riparian vegetation along the corridor.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/10</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Riparian width supports filtering and lateral connectivity.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Pace et al. 2022; Hislop et al. 2025</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">riparian_continuity</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Length of the longest uninterrupted riparian vegetation patch.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/10</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Riparian continuity supports corridor function.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Lespez et al. 2025; Ranta et al. 2021</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">riparian_tree_density</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Mean tree canopy density within the riparian corridor.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/10</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Riparian tree cover provides shade and organic matter input.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Lespez et al. 2025</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">edge_density</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Green land-cover edge length per buffer area within 150 m.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/150</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Edge density reflects habitat heterogeneity and fragmentation.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Finizio et al. 2024; Jaeger 2000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">open_space_ratio</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Percentage of open or lightly used land within a 100 m buffer.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/100</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Open space indicates potential space for restoration and public use.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Rigolon 2016; Lespez et al. 2025</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">entrance_count</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Number of walkable stream entry points per segment.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Physical entry points describe direct public access to the corridor.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Lespez et al. 2025</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">slowmob_length</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Total length of walkable paths within a 400 m buffer.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/400</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Walking and cycling infrastructure supports active access along the corridor.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Saelens et al. 2003; Ewing and Cervero 2010</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">poi_programme</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Count of programmed facilities within a 50 m stream-side buffer.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/50</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Nearby destinations and programs support everyday public use.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Saelens et al. 2003; Ewing and Cervero 2010</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">stop_count</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Count of public transport stops within a 400 m buffer.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/400</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Transit stops indicate public transport accessibility.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Geurs and van Wee 2004; Ewing and Cervero 2010</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">**V3**</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">*V3a. Biodiversity*</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">habitat_quality</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Mean InVEST habitat quality score within a 100 m riparian mask.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/-</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Integrative habitat condition variable.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">InVEST; Aznarez et al. 2022</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">shannon</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Shannon diversity of land-cover classes within a 150 m buffer.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/150</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Land-cover diversity as habitat heterogeneity proxy.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Finizio et al. 2024; Aznarez et al. 2022</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">ndvi</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Percentage of riparian pixels above NDVI 0.4.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/50</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Riparian vegetation vigour.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Finizio et al. 2024</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">gbif_species</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Unique GBIF species recorded within 400 m of each segment.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/400</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Observed species richness from citizen science records.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">GBIF</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">*V3b. Climate adaptation*</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">carbon_storage</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Mean total carbon storage within a 100 m buffer from InVEST.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/100</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Riparian carbon storage capacity.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">InVEST; IPCC 2019</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">land_surface_temperature</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Mean summer land surface temperature within a 100 m buffer from Landsat.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">100/100</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Urban heat exposure; lower values indicate cooler corridors.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Zhou et al. 2023; Kim et al. 2008</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">floodplain_availability</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Percentage of low relative elevation cells indicating floodplain space.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">200/100</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Flood attenuation potential.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Nobre et al. 2016; Verol et al. 2019</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">*V3c. Quality of life*</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">public_slowmob_access</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Building origins reachable from stream entry points within 800 m walking network and minimum walking network distance to the nearest building origin.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/800 network</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Pedestrian-network access from the public realm to the stream corridor.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Lespez et al. 2025; Ranta et al. 2021</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">public_transport_access</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Public transport stops reachable from stream entry points within 400 m walking network and minimum walking network distance to the nearest stop.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/400 network</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Transit-network access to the stream corridor.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Lespez et al. 2025</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b012"><p class="cl-6a52a596"><span class="cl-6a5193ae">program_access</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Count of program-related POIs reachable from stream entry points within 800 m walking network.</span></p></td><td class="cl-6a52b019"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/800 network</span></p></td><td class="cl-6a52b018"><p class="cl-6a52a596"><span class="cl-6a5193ae">Functional program supply reachable from the corridor.</span></p></td><td class="cl-6a52b01a"><p class="cl-6a52a596"><span class="cl-6a5193ae">Lespez et al. 2025</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a52b01b"><p class="cl-6a52a596"><span class="cl-6a5193ae">visibility</span></p></td><td class="cl-6a52b01c"><p class="cl-6a52a596"><span class="cl-6a5193ae">Stream corridor visibility ratio from isovist analysis.</span></p></td><td class="cl-6a52b01d"><p class="cl-6a52a596"><span class="cl-6a5193ae">400/300</span></p></td><td class="cl-6a52b01c"><p class="cl-6a52a596"><span class="cl-6a5193ae">Visual presence of the corridor from surrounding public space.</span></p></td><td class="cl-6a52b01e"><p class="cl-6a52a596"><span class="cl-6a5193ae">visor (Forgaci and Nattino 2025b); Lespez et al. 2025</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p>V1 variables define the underlying physical and spatial constraints within which stream corridor interventions take place. They include slope, valley depth, distance to source, upstream catchment area, sinuosity, road barrier intensity, and underground ratio. Valley depth was derived from DTM-based valley polygons using rcrisp (Forgaci &amp; Nattino, 2025a), upstream area was calculated from DTM flow accumulation using pysheds (Bartos, 2020), and underground ratio was derived from OSM culvert and underground stream information.</p>
+<p>V2 variables describe conditions that can more directly be influenced through intervention. They include impervious cover, canopy cover, riparian width, riparian continuity, riparian tree density, edge density, open space ratio, entrance count, slow-mobility path length, program-related POIs, and public transport stops.</p>
+<p>V3 variables describe outcome conditions. Biodiversity variables include InVEST habitat quality, land-cover diversity, riparian NDVI, and GBIF species richness. Climate adaptation variables include carbon storage, land surface temperature, and floodplain availability. Quality-of-life variables include visibility, access to building origins, access to public transport, and access to program-related POIs from stream entry points.</p>
+</section>
+<section id="stream-corridor-typology" class="level2">
+<h2 class="anchored" data-anchor-id="stream-corridor-typology">2.5 Stream corridor typology</h2>
+<p>K-means clustering was performed on the merged 100 m dataset. Standardization was applied before clustering, and the final cluster assignment was joined back to the segment geometry. Clustering is based on the combined V1 and V2 variable set, so the typology captures both relatively stable corridor context and current intervention-related conditions.</p>
+<p>Different clustering algorithms were tested during the workflow, including k-means, Ward hierarchical clustering, GMM, DBSCAN, and HDBSCAN. The final typology uses k-means clustering. The number of clusters was evaluated using silhouette score, Calinski-Harabasz index, Davies-Bouldin index, and interpretability of the resulting profiles. A five-cluster solution was selected for the final typology.</p>
+</section>
+<section id="optimization-model" class="level2">
+<h2 class="anchored" data-anchor-id="optimization-model">2.6 Optimization model</h2>
+<section id="overall-outcome-score" class="level3">
+<h3 class="anchored" data-anchor-id="overall-outcome-score">2.6.1 Overall outcome score</h3>
+<p>All V3 variables were first directionally harmonized so that higher values indicate better performance. Land surface temperature was inverted, while the other variables were kept in their original direction. Each variable was min-max normalized to [0, 1], and the overall V3 score was calculated as the unweighted mean of the available V3 variables. This score is used as the prediction target for the models and as the objective for the optimization.</p>
+</section>
+<section id="predictive-model" class="level3">
+<h3 class="anchored" data-anchor-id="predictive-model">2.6.2 Predictive model</h3>
+<p>For each cluster, an XGBoost regression model (Chen &amp; Guestrin, 2016) with 5-fold cross-validation was applied to quantify the contribution of individual V2 variables to the overall V3 score. The cluster-specific models identify context-dependent effects, where the effectiveness of interventions may vary across different structural conditions.</p>
+</section>
+<section id="shap-interpretation" class="level3">
+<h3 class="anchored" data-anchor-id="shap-interpretation">2.6.3 SHAP interpretation</h3>
+<p>This step identifies which V2 variables are most closely associated with the outcome score within each typology. Feature importance and SHAP values (Lundberg &amp; Lee, 2017) are used to interpret model results and to understand both the relative importance of variables and their directional effects on outcomes.</p>
+</section>
+<section id="constrained-optimization" class="level3">
+<h3 class="anchored" data-anchor-id="constrained-optimization">2.6.4 Constrained optimization</h3>
+<p>For each typology, the five highest-ranked V2 variables from the SHAP analysis were used as the optimization variables. An exhaustive grid search tested combinations of feasible changes from the cluster-mean baseline, such as reducing impervious cover, increasing canopy cover, or increasing slow-mobility path length within predefined bounds. The combination with the highest predicted V3 score was reported as the optimal intervention scenario for that typology.</p>
+<p>This modeling step links spatial patterns with restoration guidance.</p>
+<hr>
+</section>
+</section>
+</section>
+<section id="results" class="level1">
+<h1>3. Results</h1>
+<section id="variable-outputs" class="level2">
+<h2 class="anchored" data-anchor-id="variable-outputs">3.1 Variable outputs</h2>
+<p>Summary statistics of the typology input variables are presented in <span class="citation" data-cites="table-variable-summary">@table-variable-summary</span>. The dataset covers 5,886 100-meter segments, of which 4,712 have complete records for all 16 typology input variables (80.1%). The largest source of missingness among the V1 variables is valley depth, attributable to segments where the DTM-derived valley polygon does not intersect the segment geometry, typically in culverted or buried urban reaches.</p>
+<p>These summary statistics also indicate the range of intervention conditions represented in the dataset, from highly sealed and accessible urban corridors to more open or riparian-rich reaches.</p>
+<div class="cell" data-tbl-cap="Typology input variable summary.">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-6a63015c{table-layout:auto;width:100%;}.cl-6a60c6bc{font-family:'Helvetica';font-size:8pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a60c6c6{font-family:'Helvetica';font-size:8pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a61c3e6{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:2pt;padding-right:2pt;line-height: 1;background-color:transparent;}.cl-6a61cc2e{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a61cc38{background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a61cc39{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-6a63015c"><caption><p>Typology input variable summary.</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-6a61cc2e"><p class="cl-6a61c3e6"><span class="cl-6a60c6bc">Variable</span></p></th><th class="cl-6a61cc2e"><p class="cl-6a61c3e6"><span class="cl-6a60c6bc">Non-null</span></p></th><th class="cl-6a61cc2e"><p class="cl-6a61c3e6"><span class="cl-6a60c6bc">Missing %</span></p></th><th class="cl-6a61cc2e"><p class="cl-6a61c3e6"><span class="cl-6a60c6bc">Median</span></p></th><th class="cl-6a61cc2e"><p class="cl-6a61c3e6"><span class="cl-6a60c6bc">Mean</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">absolute_slope</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,462</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">valley_depth</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,462</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">15.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">19.6</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">distance_to_source</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,462</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">700.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">1773.8</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">upstream_area_log</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,462</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">13.1</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">12.9</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">und_ratio</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,462</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">sinuosity</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,462</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">1.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">1.1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">road_barrier</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,462</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">impervious_density</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,886</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">1.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">7.9</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">riparian_width_mean</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,886</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">110.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">94.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">riparian_tree_density</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,886</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.1</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">edge_density</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,886</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">263.2</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">269.7</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">open_space_ratio</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">5,886</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">stop_count</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">4,712</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">20.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">2.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">3.9</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">poi_programme</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">4,712</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">20.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">0.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">slowMob_length</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">4,712</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">20.0</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">8906.8</span></p></td><td class="cl-6a61cc38"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">11524.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a61cc39"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">entrance_count</span></p></td><td class="cl-6a61cc39"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">4,712</span></p></td><td class="cl-6a61cc39"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">20.0</span></p></td><td class="cl-6a61cc39"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">2.0</span></p></td><td class="cl-6a61cc39"><p class="cl-6a61c3e6"><span class="cl-6a60c6c6">2.9</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+</section>
+<section id="stream-corridor-typology-1" class="level2">
+<h2 class="anchored" data-anchor-id="stream-corridor-typology-1">3.2 Stream corridor typology</h2>
+<section id="classification-performance" class="level3">
+<h3 class="anchored" data-anchor-id="classification-performance">3.2.1 Classification performance</h3>
+<p>The k = 5 classification was fitted on 4,712 complete-row segments using 16 standardized V1 and V2 variables (<span class="citation" data-cites="table-typology-model-summary">@table-typology-model-summary</span>). Cluster sizes range from 511 to 1,268 segments, indicating a well-distributed classification without very small clusters (<span class="citation" data-cites="table-typology-cluster-sizes">@table-typology-cluster-sizes</span>). The silhouette coefficient of 0.141 is consistent with values reported for cluster analyses of complex urban landscape data, where overlapping gradients make clear cluster boundaries unlikely. The Calinski-Harabasz score of 621.5 indicates inter-cluster separation relative to within-cluster variance.</p>
+<div class="cell" data-tbl-cap="Typology model summary.">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-6a6968d0{table-layout:auto;width:100%;}.cl-6a6736be{font-family:'Helvetica';font-size:8pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a6736c8{font-family:'Helvetica';font-size:8pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a6850b2{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:2pt;padding-right:2pt;line-height: 1;background-color:transparent;}.cl-6a685936{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a685937{background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a685938{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-6a6968d0"><caption><p>Typology model summary.</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-6a685936"><p class="cl-6a6850b2"><span class="cl-6a6736be">metric</span></p></th><th class="cl-6a685936"><p class="cl-6a6850b2"><span class="cl-6a6736be">value</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">input_rows</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">5886</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">complete_rows</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">4712</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">n_features</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">16</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">n_clusters</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">5</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">silhouette</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">0.141</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">calinski_harabasz</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">621.5</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">davies_bouldin</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">2.01</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">inertia</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">49335.3</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">min_cluster_n</span></p></td><td class="cl-6a685937"><p class="cl-6a6850b2"><span class="cl-6a6736c8">511</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a685938"><p class="cl-6a6850b2"><span class="cl-6a6736c8">min_cluster_pct</span></p></td><td class="cl-6a685938"><p class="cl-6a6850b2"><span class="cl-6a6736c8">10.8%</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<div class="cell" data-tbl-cap="Typology cluster sizes.">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-6a6f3904{table-layout:auto;width:100%;}.cl-6a6d1d40{font-family:'Helvetica';font-size:8pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a6d1d41{font-family:'Helvetica';font-size:8pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a6de324{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:2pt;padding-right:2pt;line-height: 1;background-color:transparent;}.cl-6a6debb2{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a6debb3{background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a6debb4{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-6a6f3904"><caption><p>Typology cluster sizes.</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-6a6debb2"><p class="cl-6a6de324"><span class="cl-6a6d1d40">Typology</span></p></th><th class="cl-6a6debb2"><p class="cl-6a6de324"><span class="cl-6a6d1d40">n</span></p></th><th class="cl-6a6debb2"><p class="cl-6a6de324"><span class="cl-6a6d1d40">Share</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">1</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">708</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">15.0%</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">2</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">1,268</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">26.9%</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">3</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">966</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">20.5%</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">4</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">1,259</span></p></td><td class="cl-6a6debb3"><p class="cl-6a6de324"><span class="cl-6a6d1d41">26.7%</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a6debb4"><p class="cl-6a6de324"><span class="cl-6a6d1d41">5</span></p></td><td class="cl-6a6debb4"><p class="cl-6a6de324"><span class="cl-6a6d1d41">511</span></p></td><td class="cl-6a6debb4"><p class="cl-6a6de324"><span class="cl-6a6d1d41">10.8%</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+</section>
+<section id="typology-profiles" class="level3">
+<h3 class="anchored" data-anchor-id="typology-profiles">3.2.2 Typology profiles</h3>
+<p>The typology profiles are summarized in original units (<span class="citation" data-cites="table-typology-profile-original">@table-typology-profile-original</span>) and visualized as a profile heatmap (<a href="#fig-typology-heatmap" class="quarto-xref">Figure&nbsp;3</a>) and radar profiles (<a href="#fig-typology-radar" class="quarto-xref">Figure&nbsp;4</a>). The results suggest five corridor types.</p>
+<p><strong>Typology 1: Urbanized high-pressure corridors</strong> (n = 708; 15.0%). These corridors have high surrounding urban pressure, with high impervious cover, high road barrier intensity, many stream entrances, extensive slow-mobility infrastructure, and many program-related POIs. At the same time, riparian width and riparian tree density are low, indicating narrow and weakly vegetated buffers.</p>
+<p><strong>Typology 2: Mixed urban corridors</strong> (n = 1,268; 26.9%). These corridors represent an intermediate urban condition. Impervious cover, slow-mobility supply, land-cover edge density, and underground ratio are higher than in the more natural types, but riparian conditions are not as poor as in Typology 1. This suggests corridors with partial urbanization and some remaining vegetation structure.</p>
+<p><strong>Typology 3: Open low-access corridors</strong> (n = 966; 20.5%). These corridors have low impervious cover and a high open space ratio, suggesting relatively low built-up pressure around the stream. However, entrance count, slow-mobility supply, and program-related POIs are low. They therefore appear to be open or peri-urban corridors with available space, but limited public accessibility.</p>
+<p><strong>Typology 4: Riparian-rich meandering corridors</strong> (n = 1,259; 26.7%). These corridors are characterized by higher sinuosity, wider riparian zones, and higher riparian tree density. Impervious cover and road barrier intensity are low, indicating comparatively low infrastructure pressure and stronger riparian structure.</p>
+<p><strong>Typology 5: Steep confined valley corridors</strong> (n = 511; 10.8%). These corridors are defined mainly by steep slopes, deeper valleys, and shorter distance to source. They represent upper-network or confined valley settings. Riparian structure is moderate, and accessibility metrics are close to the dataset average.</p>
+<div class="cell" data-tbl-cap="Typology profiles.">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-6a7a8d2c{}.cl-6a781272{font-family:'Helvetica';font-size:8pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a78127c{font-family:'Helvetica';font-size:8pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a78f610{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:2pt;padding-right:2pt;line-height: 1;background-color:transparent;}.cl-6a78febc{width:0.6in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a78febd{width:0.55in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a78fec6{width:0.6in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a78fec7{width:0.55in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a78fec8{width:0.6in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a78fec9{width:0.55in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-6a7a8d2c"><caption><p>Typology profiles.</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-6a78febc"><p class="cl-6a78f610"><span class="cl-6a781272">Typology</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Slope</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Dist. to source</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Upstream area</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Valley depth</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Underground ratio</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Sinuosity</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Road barrier</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Impervious cover</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Riparian width</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Riparian tree density</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Edge density</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Open space ratio</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Stream entrances</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Slow-mobility length</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Programme POIs</span></p></th><th class="cl-6a78febd"><p class="cl-6a78f610"><span class="cl-6a781272">Transit stops</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-6a78fec6"><p class="cl-6a78f610"><span class="cl-6a78127c">1</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.016</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">2,919</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">13.37</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">18.7</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.140</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1.067</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.029</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">27.43</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">61.3</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.053</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">358.2</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.080</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">7.24</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">21,310</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1.33</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">10.76</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a78fec6"><p class="cl-6a78f610"><span class="cl-6a78127c">2</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.012</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1,974</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">13.46</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">16.8</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.259</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1.067</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.008</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">13.88</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">91.3</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.100</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">365.1</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.169</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">3.07</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">14,837</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.10</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">5.94</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a78fec6"><p class="cl-6a78f610"><span class="cl-6a78127c">3</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.011</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1,469</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">13.36</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">15.4</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.147</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1.045</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.002</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1.24</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">86.5</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.038</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">184.1</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.347</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.73</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">4,668</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.00</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.84</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a78fec6"><p class="cl-6a78f610"><span class="cl-6a78127c">4</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.017</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">2,418</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">12.33</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">14.2</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.069</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">1.174</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.006</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.35</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">109.5</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.276</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">190.4</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.031</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">2.19</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">8,896</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.05</span></p></td><td class="cl-6a78fec7"><p class="cl-6a78f610"><span class="cl-6a78127c">0.73</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a78fec8"><p class="cl-6a78f610"><span class="cl-6a78127c">5</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">0.079</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">759</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">12.84</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">43.4</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">0.079</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">1.085</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">0.008</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">3.30</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">106.6</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">0.209</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">272.8</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">0.099</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">2.46</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">9,182</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">0.08</span></p></td><td class="cl-6a78fec9"><p class="cl-6a78f610"><span class="cl-6a78127c">2.77</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<div id="fig-typology-heatmap" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-typology-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/typology_profile_heatmap.png" class="img-fluid figure-img" style="width:92.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-typology-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Typology profile heatmap.
+</figcaption>
+</figure>
+</div>
+<div id="fig-typology-radar" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-typology-radar-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/typology_radar_panel.png" class="img-fluid figure-img" style="width:92.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-typology-radar-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Typology radar profiles.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="spatial-distribution-across-cities" class="level3">
+<h3 class="anchored" data-anchor-id="spatial-distribution-across-cities">3.2.3 Spatial distribution across cities</h3>
+<p>The typology assignments are not evenly distributed across the four study cities (<a href="#fig-typology-spatial" class="quarto-xref">Figure&nbsp;5</a>; <a href="#fig-typology-by-city" class="quarto-xref">Figure&nbsp;6</a>). Dresden and Poznan show a higher percentage of Typologies 1 and 2 in central and peri-urban corridors, whereas Jablonec nad Nisou is dominated by Typology 5 in its steep valley network and Typology 4 along more sinuous forested reaches. Senica presents a more even mix of open low-access and riparian-rich corridors across its low-gradient agricultural setting. The spatial maps show that typology membership follows recognizable geomorphological and land-use patterns within each city, instead of arbitrary spatial fragmentation.</p>
+<div id="fig-typology-spatial" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-typology-spatial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/typology_spatial_four_cities.png" class="img-fluid figure-img" style="width:92.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-typology-spatial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Spatial distribution of stream corridor typologies.
+</figcaption>
+</figure>
+</div>
+<div id="fig-typology-by-city" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-typology-by-city-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/typology_by_city_stacked.png" class="img-fluid figure-img" style="width:78.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-typology-by-city-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Typology percentage by city.
+</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="intervention-effectiveness" class="level2">
+<h2 class="anchored" data-anchor-id="intervention-effectiveness">3.3 Intervention effectiveness</h2>
+<p>The intervention analysis evaluates whether the same V2 variables explain overall V3 performance across all typologies, or whether different corridor contexts point to different priority variables.</p>
+<section id="overall-v3-performance-by-typology" class="level3">
+<h3 class="anchored" data-anchor-id="overall-v3-performance-by-typology">3.3.1 Overall V3 performance by typology</h3>
+<p>The overall V3 performance score varies across typology clusters, reflecting systematic differences in ecological and social conditions associated with different stream corridor contexts (<a href="#fig-v3-boxplot" class="quarto-xref">Figure&nbsp;7</a>). Typology 5 has the highest cluster-mean modeled baseline score, while Typology 3 records the lowest baseline score, indicating the weakest aggregate performance across the available biodiversity, climate adaptation, and quality-of-life variables. Typologies 1, 2, and 4 lie at intermediate values, with differing within-typology variance structures: Typology 1 shows the widest spread, reflecting its range from high-pressure central corridors to accessible greenway segments, while Typology 4 exhibits the most compact distribution, consistent with more uniform riparian-natural conditions.</p>
+<p>The domain decomposition of the overall score shows that biodiversity variables are highest in Typologies 4 and 5, while public slow-mobility access, public transport access, and program access are highest in Typologies 1 and 2. The corridor types with the best current ecological conditions also have the poorest social accessibility, and vice versa, confirming the multi-objective nature of urban stream restoration.</p>
+<div id="fig-v3-boxplot" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-v3-boxplot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="../data/intervention_optimization/fig_v3_boxplot.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-v3-boxplot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Overall V3 performance by typology.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="context-dependency-of-intervention-priorities" class="level3">
+<h3 class="anchored" data-anchor-id="context-dependency-of-intervention-priorities">3.3.2 Context-dependency of intervention priorities</h3>
+<p>Cluster-specific SHAP values show that intervention priorities differ strongly across typologies and do not follow a single uniform ranking (<span class="citation" data-cites="table-shap-top-levers">@table-shap-top-levers</span>; <a href="#fig-intervention-summary" class="quarto-xref">Figure&nbsp;8</a>). In Typologies 1 and 2, slow-mobility pathway length and impervious cover have the highest mean absolute SHAP values, indicating that both mobility infrastructure and surface sealing are important in accessible but ecologically stressed urban corridors.</p>
+<p>In contrast, Typology 3 is led by canopy cover, followed by land-cover edge density, suggesting that in low-pressure, open corridors, the main limitation is the lack of tree canopy, not surface sealing. Typology 4 is led by edge density and open space ratio, while Typology 5 is led by riparian tree density, pointing to vegetation structure as the main constraint in already near-natural corridors.</p>
+<p>This pattern shows that impervious surface reduction is most relevant in urbanized types. In more rural or forested contexts, vegetation structure and open space are more closely related to overall performance.</p>
+<div class="cell" data-tbl-cap="Top SHAP variables by typology.">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-6a82061a{table-layout:auto;width:100%;}.cl-6a7fcfda{font-family:'Helvetica';font-size:8pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a7fcfdb{font-family:'Helvetica';font-size:8pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a809802{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:2pt;padding-right:2pt;line-height: 1;background-color:transparent;}.cl-6a80a0ea{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a80a0f4{background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a80a0f5{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-6a82061a"><caption><p>Top SHAP variables by typology.</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-6a80a0ea"><p class="cl-6a809802"><span class="cl-6a7fcfda">Typology</span></p></th><th class="cl-6a80a0ea"><p class="cl-6a809802"><span class="cl-6a7fcfda">First variable</span></p></th><th class="cl-6a80a0ea"><p class="cl-6a809802"><span class="cl-6a7fcfda">SHAP 1</span></p></th><th class="cl-6a80a0ea"><p class="cl-6a809802"><span class="cl-6a7fcfda">Second variable</span></p></th><th class="cl-6a80a0ea"><p class="cl-6a809802"><span class="cl-6a7fcfda">SHAP 2</span></p></th><th class="cl-6a80a0ea"><p class="cl-6a809802"><span class="cl-6a7fcfda">Third variable</span></p></th><th class="cl-6a80a0ea"><p class="cl-6a809802"><span class="cl-6a7fcfda">SHAP 3</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">1</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Slow-mobility length</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0170</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Impervious cover</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0141</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Riparian width</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0110</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">2</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Slow-mobility length</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0128</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Impervious cover</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0128</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Riparian tree density</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0069</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">3</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Canopy cover</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0154</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Edge density</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0116</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Slow-mobility length</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0105</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">4</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Edge density</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0078</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Open space ratio</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0076</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Riparian tree density</span></p></td><td class="cl-6a80a0f4"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0072</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a80a0f5"><p class="cl-6a809802"><span class="cl-6a7fcfdb">5</span></p></td><td class="cl-6a80a0f5"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Riparian tree density</span></p></td><td class="cl-6a80a0f5"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0115</span></p></td><td class="cl-6a80a0f5"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Open space ratio</span></p></td><td class="cl-6a80a0f5"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0093</span></p></td><td class="cl-6a80a0f5"><p class="cl-6a809802"><span class="cl-6a7fcfdb">Canopy cover</span></p></td><td class="cl-6a80a0f5"><p class="cl-6a809802"><span class="cl-6a7fcfdb">0.0087</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+</section>
+<section id="optimal-intervention-scenarios-per-typology" class="level3">
+<h3 class="anchored" data-anchor-id="optimal-intervention-scenarios-per-typology">3.3.3 Optimal intervention scenarios per typology</h3>
+<p>For each typology cluster, constrained optimization identifies the combination of V2 interventions that maximizes the predicted overall V3 gain relative to the cluster-mean baseline (<span class="citation" data-cites="table-intervention-results">@table-intervention-results</span>; <a href="#fig-intervention-summary" class="quarto-xref">Figure&nbsp;8</a>). Under joint optimization of the five highest-ranked variables per typology, achievable gains range from 7.3% in Typology 3 to 13.4% in Typology 1.</p>
+<p>The optimal intervention sets differ across typologies. In Typology 1, the optimal set combines a large increase in slow-mobility path supply, impervious cover reduction, and riparian width expansion. Slow-mobility expansion and surface de-sealing address the main social and ecological constraints in this type. Typology 2 shows a similar structure with smaller magnitudes. Typology 3 prioritizes canopy cover gain and slow-mobility expansion, with impervious cover reduction absent from the top priorities, reflecting the low impervious baseline. Typologies 4 and 5 prioritize riparian tree density, open space ratio, and canopy cover, with smaller magnitudes reflecting the already-high ecological performance baseline. These differences support typology-specific intervention design instead of applying the same restoration strategy across the whole stream network.</p>
+<div class="cell" data-tbl-cap="Optimized intervention scenarios.">
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-6a88f092{table-layout:auto;width:100%;}.cl-6a86abac{font-family:'Helvetica';font-size:8pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a86abb6{font-family:'Helvetica';font-size:8pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-6a877582{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:2pt;padding-right:2pt;line-height: 1;background-color:transparent;}.cl-6a877d7a{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a877d7b{background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-6a877d84{background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-6a88f092"><caption><p>Optimized intervention scenarios.</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-6a877d7a"><p class="cl-6a877582"><span class="cl-6a86abac">Typology</span></p></th><th class="cl-6a877d7a"><p class="cl-6a877582"><span class="cl-6a86abac">n</span></p></th><th class="cl-6a877d7a"><p class="cl-6a877582"><span class="cl-6a86abac">Baseline V3</span></p></th><th class="cl-6a877d7a"><p class="cl-6a877582"><span class="cl-6a86abac">Optimised V3</span></p></th><th class="cl-6a877d7a"><p class="cl-6a877582"><span class="cl-6a86abac">Gain (%)</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">1</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">708</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4149</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4703</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">13.36</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">2</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">1,268</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4153</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4516</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">8.73</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">3</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">966</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.3698</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.3967</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">7.26</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">4</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">1,259</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4299</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4851</span></p></td><td class="cl-6a877d7b"><p class="cl-6a877582"><span class="cl-6a86abb6">12.84</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-6a877d84"><p class="cl-6a877582"><span class="cl-6a86abb6">5</span></p></td><td class="cl-6a877d84"><p class="cl-6a877582"><span class="cl-6a86abb6">511</span></p></td><td class="cl-6a877d84"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4308</span></p></td><td class="cl-6a877d84"><p class="cl-6a877582"><span class="cl-6a86abb6">0.4671</span></p></td><td class="cl-6a877d84"><p class="cl-6a877582"><span class="cl-6a86abb6">8.42</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<div id="fig-intervention-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-intervention-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/intervention_summary_panel.png" class="img-fluid figure-img" style="width:96.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-intervention-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Intervention outcomes and priorities by typology.
+</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+</section>
+</section>
+<section id="discussion" class="level1">
+<h1>4. Discussion</h1>
+<section id="typology-based-design-implications" class="level2">
+<h2 class="anchored" data-anchor-id="typology-based-design-implications">4.1 Typology-based design implications</h2>
+<p>The results show that urban stream restoration should account for corridor context. The five typologies do not simply describe different levels of degradation; they represent different combinations of geomorphological setting, urban pressure, riparian structure, and public accessibility. The same intervention variable can be important in one typology and less relevant in another.</p>
+<p>For Urbanized high-pressure corridors and Mixed urban corridors, ecological improvement and public access need to be considered together. These types combine high impervious cover, road barrier intensity, entrances, slow-mobility supply, and program access with weaker riparian structure. The optimization results point toward sets of interventions that combine surface de-sealing, riparian widening, and mobility-network improvement. In practical terms, these corridors are likely to benefit from blue-green restoration that is coordinated with public-space redesign and active-mobility infrastructure.</p>
+<p>For Open low-access corridors, the main constraint is different. These segments have relatively low impervious pressure and high open space availability, but weak entrance provision, slow-mobility supply, and program access. In these settings, restoration priorities should focus less on removing urban pressure and more on improving access and ecological function in available open space. Canopy expansion, path connection, and selective programming can increase both environmental performance and everyday usability without assuming that all low-pressure corridors are already high-performing.</p>
+<p>For Riparian-rich meandering corridors and Steep confined valley corridors, the priority is more conservative. These types already contain stronger riparian structure or distinct geomorphological constraints, so intensive public-space intervention is not always appropriate. Instead, interventions should protect existing vegetation structure, avoid fragmentation, and improve access only where it does not undermine habitat quality or slope-sensitive conditions. This supports a differentiated restoration strategy in which some corridors are prioritized for active urban integration while others are managed primarily for ecological continuity and protection.</p>
+<p>Across all typologies, the main contribution of the framework is to show that restoration priorities depend on the type of corridor being considered. The typology, SHAP interpretation, and constrained optimization together provide a way to identify where intervention effort is likely to improve multiple outcomes.</p>
+</section>
+<section id="limitations-and-future-work" class="level2">
+<h2 class="anchored" data-anchor-id="limitations-and-future-work">4.2 Limitations and future work</h2>
+<p>Several limitations remain in the present analysis. First, GBIF species richness is a citizen science proxy that conflates ecological quality with observer effort. The strong inter-city variation in GBIF record density means that the biodiversity component of the overall score partially reflects sampling effort rather than ecological quality alone. Future work should include corrections or replace citizen science data with standardized bioassessment records where available.</p>
+<p>Second, the overall V3 score assigns equal weight to each outcome domain. A corridor with very high biodiversity performance and very low quality of life receives the same overall score as one with intermediate performance in both domains. Domain-weighted or Pareto-optimal approaches could be implemented to support value-explicit planning processes.</p>
+<p>Finally, the study covers four Central European cities spanning a limited range of climatic and urban morphological contexts. Testing the typology and variable-outcome relationships in Mediterranean, Nordic, or non-European contexts would show how far the results can be generalized.</p>
+<hr>
+</section>
+</section>
+<section id="conclusion" class="level1">
+<h1>5. Conclusion</h1>
+<p>Using an open-data framework applied to 5,886 stream segments across four Central European cities, five structurally distinct corridor types were identified from openly available geospatial data. The effectiveness of restoration variables varied across these types, and constrained multi-objective optimization identified feasible sets of interventions that improve biodiversity, climate adaptation, and quality-of-life outcomes within each type. Predicted overall performance gains of 7 to 13% under planning-realistic variable changes show that all five corridor types still have room for improvement, with the greatest gains available in the most urbanized and ecologically stressed corridors.</p>
+<p>The framework provides municipal planners, urban ecologists, and urban designers with a way to target and prioritize stream restoration investment. By aligning interventions with corridor context, cities can improve the ecological and social returns from limited restoration budgets while building connected stream networks for biodiversity and climate adaptation.</p>
+<p>The broader value of the approach is that urban stream restoration can be assessed at the network scale while still keeping intervention priorities specific to each corridor type.</p>
+<hr>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<p>Amatulli, G., Domisch, S., Tuanmu, M. N., Parmentier, B., Ranipeta, A., Malczyk, J., &amp; Jetz, W. (2018). A suite of global, cross-scale topographic variables for environmental and biodiversity modeling. <em>Scientific Data, 5</em>(1), Article 180040. https://doi.org/10.1038/sdata.2018.40</p>
+<p>Aznarez, C., Svenning, J. C., Taveira, G., Baró, F., &amp; Pascual, U. (2022). Wildness and habitat quality drive spatial patterns of urban biodiversity. <em>Landscape and Urban Planning, 228</em>, Article 104570. https://doi.org/10.1016/j.landurbplan.2022.104570</p>
+<p>Barrington-Leigh, C., &amp; Millard-Ball, A. (2017). The world’s user-generated road map is more than 80% complete. <em>PLOS ONE, 12</em>(8), Article e0180698. https://doi.org/10.1371/journal.pone.0180698</p>
+<p>Bartos, M. (2020). <em>pysheds: Simple and fast watershed delineation in python</em> [Software]. Zenodo. https://doi.org/10.5281/zenodo.3822494</p>
+<p>Benda, L., Poff, N. L., Miller, D., Dunne, T., Reeves, G., Pess, G., &amp; Pollock, M. (2004). The network dynamics hypothesis: How channel networks structure riverine habitats. <em>BioScience, 54</em>(5), 413-427.</p>
+<p>Beechie, T. J., Sear, D. A., Olden, J. D., Pess, G. R., Buffington, J. M., Moir, H., Roni, P., &amp; Pollock, M. M. (2010). Process-based principles for restoring river ecosystems. <em>BioScience, 60</em>(3), 209-222. https://doi.org/10.1525/bio.2010.60.3.7</p>
+<p>Bernhardt, E. S., Palmer, M. A., Allan, J. D., Alexander, G., Barnas, K., Brooks, S., Carr, J., Clayton, S., Dahm, C., Follstad-Shah, J., Galat, D., Gloss, S., Goodwin, P., Hart, D., Hassett, B., Jenkinson, R., Katz, S., Kondolf, G. M., Lake, P. S., … Sudduth, E. (2005). Synthesizing U.S. river restoration efforts. <em>Science, 308</em>(5722), 636-637. https://doi.org/10.1126/science.1109769</p>
+<p>Burrell, T. H., O’Neal, B., Arscott, D. B., &amp; Newbold, J. D. (2014). Streamside forest buffer width needed to protect stream water quality, habitat, and organisms: A literature review. <em>JAWRA Journal of the American Water Resources Association, 50</em>(1), 16-39.</p>
+<p>Chen, T., &amp; Guestrin, C. (2016). XGBoost: A scalable tree boosting system. In <em>Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining</em> (pp.&nbsp;785-794). Association for Computing Machinery. https://doi.org/10.1145/2939672.2939785</p>
+<p>Doretto, A., Piano, E., &amp; Larson, C. E. (2020). The river continuum concept: Lessons from the past and perspectives for the future. <em>Canadian Journal of Fisheries and Aquatic Sciences, 77</em>(11), 1853-1864.</p>
+<p>Ewing, R., &amp; Cervero, R. (2010). Travel and the built environment: A meta-analysis. <em>Journal of the American Planning Association, 76</em>(3), 265-294. https://doi.org/10.1080/01944361003766766</p>
+<p>Finizio, M., Pontieri, F., Bottaro, C., Di Febbraro, M., Innangi, M., Sona, G., &amp; Carranza, M. L. (2024). Remote sensing for urban biodiversity: A review and meta-analysis. <em>Remote Sensing, 16</em>(23), Article 4483. https://doi.org/10.3390/rs16234483</p>
+<p>Foley, J. A., DeFries, R., Asner, G. P., Barford, C., Bonan, G., Carpenter, S. R., &amp; Snyder, P. K. (2005). Global consequences of land use. <em>Science, 309</em>(5734), 570-574. https://doi.org/10.1126/science.1111772</p>
+<p>Forgaci, C., &amp; Nattino, F. (2025a). <em>rcrisp: Automate the delineation of urban river spaces</em> [Software]. Zenodo. https://doi.org/10.5281/zenodo.15793526</p>
+<p>Forgaci, C., &amp; Nattino, F. (2025b). <em>visor: Geospatial tools for visibility analysis</em> [Software]. Zenodo. https://doi.org/10.5281/zenodo.15133420</p>
+<p>Forman, R. T. T., &amp; Alexander, L. E. (1998). Roads and their major ecological effects. <em>Annual Review of Ecology and Systematics, 29</em>, 207-231.</p>
+<p>Geurs, K. T., &amp; van Wee, B. (2004). Accessibility evaluation of land-use and transport strategies: Review and research directions. <em>Journal of Transport Geography, 12</em>(2), 127-140. https://doi.org/10.1016/j.jtrangeo.2003.10.005</p>
+<p>Gregory, K. J., Davis, R. J., &amp; Downs, P. W. (1992). Identification of river channel change due to urbanisation. <em>Applied Geography, 12</em>(4), 299-318.</p>
+<p>Grill, G., Lehner, B., Thieme, M., Geenen, B., Tickner, D., Antonelli, F., Babu, S., &amp; Zarfl, C. (2019). Mapping the world’s free-flowing rivers. <em>Nature, 569</em>, 215-221. https://doi.org/10.1038/s41586-019-1111-9</p>
+<p>Hall, L. S., Krausman, P. R., &amp; Morrison, M. L. (1997). The habitat concept and a plea for standard terminology. <em>Wildlife Society Bulletin, 25</em>(1), 173-182.</p>
+<p>Hislop, S., Soto-Berelov, M., Jellinek, S., Chee, Y. E., &amp; Jones, S. (2025). Monitoring riparian vegetation in urban areas with Sentinel-2 satellite imagery. <em>Ecological Management &amp; Restoration</em>.</p>
+<p>IPCC. (2019). <em>2019 refinement to the 2006 IPCC guidelines for national greenhouse gas inventories: Volume 4. Agriculture, forestry and other land use</em>. IPCC.</p>
+<p>Jaeger, J. A. G. (2000). Landscape division, splitting index, and effective mesh size: New measures of landscape fragmentation. <em>Landscape Ecology, 15</em>(2), 115-130. https://doi.org/10.1023/A:1008129329289</p>
+<p>Jones, R. J. A., Hiederer, R., Rusco, E., &amp; Montanarella, L. (2005). Estimating organic carbon in the soils of Europe for policy support. <em>European Journal of Soil Science, 56</em>(5), 655-671. https://doi.org/10.1111/j.1365-2389.2005.00728.x</p>
+<p>Kim, Y. H., &amp; Baik, J. J. (2008). Maximum urban heat island intensity in Seoul. <em>Journal of Applied Meteorology and Climatology, 47</em>(3), 651-659. https://doi.org/10.1175/2007JAMC1638.1</p>
+<p>Leopold, L. B., &amp; Maddock, T. (1953). <em>The hydraulic geometry of stream channels and some physiographic implications</em> (U.S. Geological Survey Professional Paper 252). U.S. Geological Survey.</p>
+<p>Lespez, L., Germaine, M. A., Gob, F., Tales, E., Thommeret, N., de Milleville, L., &amp; Letourneur, M. (2025). A new tool to characterise the socio-environmental dimensions of urban rivers: Urban river socio-environmental index. <em>Landscape and Urban Planning, 261</em>, Article 105388. https://doi.org/10.1016/j.landurbplan.2025.105388</p>
+<p>Lundberg, S. M., &amp; Lee, S.-I. (2017). A unified approach to interpreting model predictions. In <em>Advances in Neural Information Processing Systems</em> (Vol. 30). Curran Associates.</p>
+<p>Niezgoda, S. L., &amp; Johnson, P. A. (2005). Improving the urban stream restoration effort: Identifying critical form and processes relationships. <em>Environmental Management, 35</em>(5), 579-592.</p>
+<p>Nobre, A. D., Cuartas, L. A., Hodnett, M., Renno, C. D., Rodrigues, G., Silveira, A., &amp; Waterloo, M. (2016). HAND contour: A new proxy predictor of inundation extent and related water depth. <em>Geophysical Research Letters, 43</em>(18), 9723-9731. https://doi.org/10.1002/2016GL069050</p>
+<p>Pace, B. A., Kolka, R. K., &amp; Palik, B. J. (2022). Applying the Goldilocks rule to riparian buffer widths for forested headwater streams across the contiguous U.S. <em>Forests, 13</em>(9), Article 1509. https://doi.org/10.3390/f13091509</p>
+<p>Pan, Y., Birdsey, R. A., Fang, J., Houghton, R., Kauppi, P. E., Kurz, W. A., &amp; Hayes, D. (2011). A large and persistent carbon sink in the world’s forests. <em>Science, 333</em>(6045), 988-993. https://doi.org/10.1126/science.1201609</p>
+<p>Palmer, M. A., Bernhardt, E. S., Allan, J. D., Lake, P. S., Alexander, G., Brooks, S., Carr, J., Clayton, S., Dahm, C. N., Follstad-Shah, J., Galat, D. L., Loss, S. G., Goodwin, P., Hart, D. D., Hassett, B., Jenkinson, R., Kondolf, G. M., Lave, R., Meyer, J. L., … Sudduth, E. (2005). Standards for ecologically successful river restoration. <em>Journal of Applied Ecology, 42</em>(2), 208-217. https://doi.org/10.1111/j.1365-2664.2005.01004.x</p>
+<p>Palmer, M. A., Hondula, K. L., &amp; Koch, B. J. (2014). Ecological restoration of streams and rivers: Shifting strategies and shifting goals. <em>Annual Review of Ecology, Evolution, and Systematics, 45</em>, 247-269. https://doi.org/10.1146/annurev-ecolsys-120213-091935</p>
+<p>Paul, M. J., &amp; Meyer, J. L. (2001). Streams in the urban landscape. <em>Annual Review of Ecology and Systematics, 32</em>, 333-365. https://doi.org/10.1146/annurev.ecolsys.32.081501.114040</p>
+<p>Polasky, S., Nelson, E., Pennington, D., &amp; Johnson, K. A. (2011). The impact of land-use change on ecosystem services, biodiversity and returns to landowners: A case study in Minnesota. <em>Environmental and Resource Economics, 48</em>(2), 219-242. https://doi.org/10.1007/s10640-010-9407-0</p>
+<p>Ranta, E., Vidal-Abarca, M. R., Calapez, A. R., &amp; Feio, M. J. (2021). Urban stream assessment system (UsAs): An integrative tool to assess biodiversity, ecosystem functions and services. <em>Ecological Indicators, 121</em>, Article 106980. https://doi.org/10.1016/j.ecolind.2020.106980</p>
+<p>Raymond, C. M., Frantzeskaki, N., Kabisch, N., Berry, P., Breil, M., Nita, M. R., Geneletti, D., &amp; Calfapietra, C. (2017). A framework for assessing and implementing the co-benefits of nature-based solutions in urban areas. <em>Environmental Science &amp; Policy, 77</em>, 15-24. https://doi.org/10.1016/j.envsci.2017.07.008</p>
+<p>Rigolon, A. (2016). A complex landscape of inequity in access to urban parks: A literature review. <em>Landscape and Urban Planning, 153</em>, 160-169. https://doi.org/10.1016/j.landurbplan.2016.05.017</p>
+<p>Rosgen, D. L. (1994). A classification of natural rivers. <em>Catena, 22</em>(3), 169-199.</p>
+<p>Saelens, B. E., Sallis, J. F., &amp; Frank, L. D. (2003). Environmental correlates of walking and cycling: Findings from the transportation, urban design, and planning literatures. <em>Annals of Behavioral Medicine, 25</em>(2), 80-91. https://doi.org/10.1207/S15324796ABM2502_03</p>
+<p>Sallustio, L., De Toni, A., Strollo, A., Di Febbraro, M., Gissi, E., Casella, L., &amp; Munafa, M. (2017). Assessing habitat quality in relation to the spatial distribution of protected areas in Italy. <em>Journal of Environmental Management, 201</em>, 129-137. https://doi.org/10.1016/j.jenvman.2017.06.031</p>
+<p>Schiff, R., &amp; Benoit, G. (2007). Effects of impervious cover at multiple spatial scales on coastal watershed streams. <em>JAWRA Journal of the American Water Resources Association, 43</em>(3), 712-730.</p>
+<p>Sharma, S., &amp; Khanal, P. (2024). Assessing land-cover change and urbanization impact on riparian zones in South Carolina: A decade of transition. <em>Land, 13</em>(12), Article 2232. https://doi.org/10.3390/land13122232</p>
+<p>Sharp, R., Chaplin-Kramer, R., Wood, S., Guerry, A., Tallis, H., &amp; Ricketts, T. (2024). <em>InVEST 3.19 user’s guide</em>. The Natural Capital Project, Stanford University.</p>
+<p>Terrado, M., Sabater, S., Chaplin-Kramer, B., Mandle, L., Ziv, G., &amp; Acuna, V. (2016). Model development for the assessment of terrestrial and aquatic habitat quality in conservation planning. <em>Science of the Total Environment, 540</em>, 63-70. https://doi.org/10.1016/j.scitotenv.2015.03.064</p>
+<p>Verol, M. P., de Melo, D. C., &amp; Miguez, M. G. (2019). Uncertainty in flood hazard map based on HAND physical model: The influence of DEM resolution. <em>Natural Hazards, 96</em>, 1235-1252.</p>
+<p>Vietz, G. J., Walsh, C. J., &amp; Fletcher, T. D. (2016). Urban hydrogeomorphology and the urban stream syndrome: Treating the symptoms and causes of geomorphic change. <em>Progress in Physical Geography, 40</em>(3), 480-492. https://doi.org/10.1177/0309133315605048</p>
+<p>Walsh, C. J., Roy, A. H., Feminella, J. W., Cottingham, P. D., Groffman, P. M., &amp; Morgan, R. P. (2005). The urban stream syndrome: Current knowledge and the search for a cure. <em>Journal of the North American Benthological Society, 24</em>(3), 706-723. https://doi.org/10.1899/04-028.1</p>
+<p>Wohl, E., Lane, S. N., &amp; Wilcox, A. C. (2015). The science and practice of river restoration. <em>Water Resources Research, 51</em>(8), 5974-5997. https://doi.org/10.1002/2014WR016874</p>
+<p>Xia, T., Zhu, W., Xin, P., &amp; Li, L. (2010). Assessment of urban stream morphology: An integrated index and modelling system. <em>Environmental Monitoring and Assessment, 167</em>(1), 447-460.</p>
+<p>Zanaga, D., Van De Kerchove, R., De Keersmaecker, W., Souverijns, N., Brockmann, C., Quast, R., &amp; Arino, O. (2022). <em>ESA WorldCover 10 m 2021 v200</em> [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7254221</p>
+<p>Zhou, W., Cao, W., Wu, T., &amp; Zhang, T. (2023). The win-win interaction between integrated blue and green space on urban cooling. <em>Science of the Total Environment, 863</em>, Article 160712. https://doi.org/10.1016/j.scitotenv.2022.160712</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

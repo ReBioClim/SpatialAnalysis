@@ -1,0 +1,17 @@
+Variable,Non-null,Missing %,Median,Mean
+absolute_slope,5462,7.2,0.012,0.0242
+valley_depth,5462,7.2,15.0439,19.6006
+distance_to_source,5462,7.2,700.0,1773.8191
+upstream_area_log,5462,7.2,13.0524,12.9312
+und_ratio,5462,7.2,0.0,0.1387
+sinuosity,5462,7.2,1.0469,1.091
+road_barrier,5462,7.2,0.005,0.0091
+impervious_density,5886,0.0,1.0293,7.9049
+riparian_width_mean,5886,0.0,110.0,93.9541
+riparian_tree_density,5886,0.0,0.1354,0.143
+edge_density,5886,0.0,263.2075,269.7248
+open_space_ratio,5886,0.0,0.0425,0.1497
+stop_count,4712,19.95,2.0,3.8829
+poi_programme,4712,19.95,0.0,0.2479
+slowMob_length,4712,19.95,8906.8344,11524.0365
+entrance_count,4712,19.95,2.0,2.916

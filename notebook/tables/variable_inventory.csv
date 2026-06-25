@@ -1,0 +1,36 @@
+Variable,Definition,Scale (m),Rationale,Source
+**V1**,,,,
+slope,Absolute longitudinal slope from DTM elevation differences between segment endpoints divided by segment length.,200/-,"Channel morphology varies with slope, drainage area, and rainfall intensity. Topographic derivatives characterise abiotic setting.",Gregory et al. 1992; Xia et al. 2010; Amatulli et al. 2018; Niezgoda and Johnson 2005
+valley_depth,Mean valley depth from DTM-based valley polygons.,200/-,Incision depth indicates vertical confinement and floodplain connectivity.,rcrisp (Forgaci and Nattino 2025a)
+distance_to_source,Along-network distance from segment midpoint to stream source.,200/-,Longitudinal position in the network structures downstream ecological gradients.,Benda et al. 2004; Doretto et al. 2020
+upstream_area,Upstream catchment area from DTM flow accumulation; log-transformed for analysis.,200/-,Catchment size controls discharge and urbanisation effects along the network.,Leopold and Maddock 1953; Paul and Meyer 2001; Bartos 2020
+road_barrier,Road and railway crossing density per unit stream length.,200/-,Transport infrastructure fragments longitudinal and lateral connectivity.,Grill et al. 2019
+underground_ratio,Percentage of segment length tagged as culvert or underground in OSM.,200/-,Structural openness of the corridor.,Lespez et al. 2025
+sinuosity,Channel path length divided by straight endpoint distance.,200/-,Planform complexity and habitat potential.,Rosgen 1994; Niezgoda and Johnson 2005; Lespez et al. 2025; Xia et al. 2010
+**V2**,,,,
+impervious_cover,Percentage of impervious surface within a 100 m buffer.,100/100,Reach-scale impervious cover predicts biotic condition better than regional land use.,Schiff and Benoit 2007; Sharma and Khanal 2024
+canopy_cover,Percentage of tree canopy within a 50 m buffer.,100/50,Canopy shading regulates stream temperature.,Burrell et al. 2014; Ranta et al. 2021
+riparian_width,Mean width of connected riparian vegetation along the corridor.,100/10,Riparian width supports filtering and lateral connectivity.,Pace et al. 2022; Hislop et al. 2025
+riparian_continuity,Length of the longest uninterrupted riparian vegetation patch.,100/10,Riparian continuity supports corridor function.,Lespez et al. 2025; Ranta et al. 2021
+riparian_tree_density,Mean tree canopy density within the riparian corridor.,100/10,Riparian tree cover provides shade and organic matter input.,Lespez et al. 2025
+edge_density,Green land-cover edge length per buffer area within 150 m.,100/150,Edge density reflects habitat heterogeneity and fragmentation.,Finizio et al. 2024; Jaeger 2000
+open_space_ratio,Percentage of open or lightly used land within a 100 m buffer.,100/100,Open space indicates potential space for restoration and public use.,Rigolon 2016; Lespez et al. 2025
+entrance_count,Number of walkable stream entry points per segment.,400/-,Physical entry points describe direct public access to the corridor.,Lespez et al. 2025
+slowmob_length,Total length of walkable paths within a 400 m buffer.,400/400,Walking and cycling infrastructure supports active access along the corridor.,Saelens et al. 2003; Ewing and Cervero 2010
+poi_programme,Count of programmed facilities within a 50 m stream-side buffer.,400/50,Nearby destinations and programs support everyday public use.,Saelens et al. 2003; Ewing and Cervero 2010
+stop_count,Count of public transport stops within a 400 m buffer.,400/400,Transit stops indicate public transport accessibility.,Geurs and van Wee 2004; Ewing and Cervero 2010
+**V3**,,,,
+*V3a. Biodiversity*,,,,
+habitat_quality,Mean InVEST habitat quality score within a 100 m riparian mask.,100/-,Integrative habitat condition variable.,InVEST; Aznarez et al. 2022
+shannon,Shannon diversity of land-cover classes within a 150 m buffer.,100/150,Land-cover diversity as habitat heterogeneity proxy.,Finizio et al. 2024; Aznarez et al. 2022
+ndvi,Percentage of riparian pixels above NDVI 0.4.,100/50,Riparian vegetation vigour.,Finizio et al. 2024
+gbif_species,Unique GBIF species recorded within 400 m of each segment.,400/400,Observed species richness from citizen science records.,GBIF
+*V3b. Climate adaptation*,,,,
+carbon_storage,Mean total carbon storage within a 100 m buffer from InVEST.,100/100,Riparian carbon storage capacity.,InVEST; IPCC 2019
+land_surface_temperature,Mean summer land surface temperature within a 100 m buffer from Landsat.,100/100,Urban heat exposure; lower values indicate cooler corridors.,Zhou et al. 2023; Kim et al. 2008
+floodplain_availability,Percentage of low relative elevation cells indicating floodplain space.,200/100,Flood attenuation potential.,Nobre et al. 2016; Verol et al. 2019
+*V3c. Quality of life*,,,,
+public_slowmob_access,Building origins reachable from stream entry points within 800 m walking network and minimum walking network distance to the nearest building origin.,400/800 network,Pedestrian-network access from the public realm to the stream corridor.,Lespez et al. 2025; Ranta et al. 2021
+public_transport_access,Public transport stops reachable from stream entry points within 400 m walking network and minimum walking network distance to the nearest stop.,400/400 network,Transit-network access to the stream corridor.,Lespez et al. 2025
+program_access,Count of program-related POIs reachable from stream entry points within 800 m walking network.,400/800 network,Functional program supply reachable from the corridor.,Lespez et al. 2025
+visibility,Stream corridor visibility ratio from isovist analysis.,400/300,Visual presence of the corridor from surrounding public space.,visor (Forgaci and Nattino 2025b); Lespez et al. 2025
