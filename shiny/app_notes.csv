@@ -1,6 +1,0 @@
-Topic,What to use,Meaning
-Paste a table,"case, measure, sc, ps","Use this when you have many cases. SC means spatial condition. PS means public support."
-Add one case,"case name, measure name, SC value, PS value","Use this when you only want to test one restoration measure."
-Score values,"1 to 5","1 means very low. 5 means very high."
-Result colors,"red, blue, orange, green","The color shows whether the measure is a synergy or a conflict."
-Point shapes,"circle, square, diamond, triangle","The shape shows the pilot stream."
