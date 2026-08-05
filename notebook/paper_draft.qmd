@@ -60,22 +60,22 @@ The analysis uses open data sources including OpenStreetMap, ESA WorldCover, Cop
 
 ## 2.2 Study area
 
-The framework was applied to four Central European cities: Dresden (Germany), Poznan (Poland), Jablonec nad Nisou (Czech Republic), and Senica (Slovakia). The cities were selected to cover different urban sizes and stream settings, from large urban floodplain systems to small mountain and lowland cities. All spatial analyses were carried out in EPSG:25833 (ETRS89 / UTM zone 33N), and the same scripts and parameter settings were used for all cities (@fig-study-area).
+The framework was applied to four Central European cities: Dresden (Germany), Poznan (Poland), Jablonec nad Nisou (Czech Republic), and Senica (Slovakia). The cities were selected as part of the Interreg CE project ReBioClim to cover different urban sizes and stream settings, from large urban floodplain systems to small mountain and lowland cities. All spatial analyses were carried out in EPSG:25833 (ETRS89 / UTM zone 33N), and the same scripts and parameter settings were used for all cities (@fig-study-area).
 
 ![Study area: four Central European cities with stream distribution maps.](figures/study_area_cities.png){#fig-study-area width="88%"}
 
-## 2.3 Stream network extraction and segmentation
+## 2.3 Stream network extraction, pre-processing and segmentation
 
 The stream network was extracted from OpenStreetMap using waterway tags for streams, drains, ditches, and culverts. Isolated drain and ditch segments not connected to the broader waterway network were removed. Named stream reaches were dissolved to continuous lines, and unnamed reaches were merged by proximity at a 2 m threshold in EPSG:25833. Segments shorter than 100 m after merging were excluded from the final network.
 
-Mouth points for each stream line were detected from a 30 m digital terrain model (DTM) and used as the downstream anchor for segment generation. From each mouth, the stream was divided into 100 m, 200 m, and 400 m segments measured along the network in the upstream direction. This mouth-anchored segmentation ensures that segment boundaries are topologically consistent across scale and that upstream catchment position is directly encoded in the distance-to-source variable. The 100 m layer served as the primary unit of analysis throughout the typology and optimization stages.
+Mouth points for each stream line were detected from a 30 m digital terrain model (DTM) and used as the downstream anchor for segment generation. From each mouth, the stream was divided into 100 m, 200 m, and 400 m segments measured along the network in the upstream direction. This mouth-anchored segmentation ensures that segment boundaries are topologically consistent across scales and that upstream catchment position is directly encoded in the distance-to-source variable. The 100 m layer served as the primary unit of analysis throughout the typology and optimization stages.
 
 ## 2.4 Variable system
 
-Variables are organized into three groups. V1 variables represent relatively stable hydro-morphological context and structural conditions. V2 variables represent intervention-related attributes of the stream corridor, including ecological characteristics and accessibility-related factors. V3 variables represent outcome variables corresponding to the three primary goals of the study: biodiversity, climate adaptation, and quality of life. The full variable list is shown in @table-variable-inventory.
+Variables are organized into three groups. V1 variables represent relatively stable hydro-morphological context and structural conditions. V2 variables represent intervention-related attributes of the stream corridor, including ecological characteristics and accessibility-related factors. V3 variables represent outcome variables corresponding to the three primary goals of the study: biodiversity, climate adaptation, and quality of life. The full variable list is shown in @tbl-variable-inventory.
 
 ```{r}
-#| label: table-variable-inventory
+#| label: tbl-variable-inventory
 #| tbl-cap: "Variable list."
 #| echo: false
 source("table_helpers.R")
@@ -110,7 +110,7 @@ This step identifies which V2 variables are most closely associated with the out
 
 ### 2.6.4 Constrained optimization
 
-For each typology, the five highest-ranked V2 variables from the SHAP analysis were used as the optimization variables. An exhaustive grid search tested combinations of feasible changes from the cluster-mean baseline, such as reducing impervious cover, increasing canopy cover, or increasing slow-mobility path length within predefined bounds. The combination with the highest predicted V3 score was reported as the optimal intervention scenario for that typology.
+For each type, the five highest-ranked V2 variables from the SHAP analysis were used as the optimization variables. An exhaustive grid search tested combinations of feasible changes from the cluster-mean baseline, such as reducing impervious cover, increasing canopy cover, or increasing slow-mobility path length within predefined bounds. The combination with the highest predicted V3 score was reported as the optimal intervention scenario for that type.
 
 This modeling step links spatial patterns with restoration guidance.
 
@@ -120,12 +120,12 @@ This modeling step links spatial patterns with restoration guidance.
 
 ## 3.1 Variable outputs
 
-Summary statistics of the typology input variables are presented in @table-variable-summary. The dataset covers 5,886 100-meter segments, of which 4,712 have complete records for all 16 typology input variables (80.1%). The largest source of missingness among the V1 variables is valley depth, attributable to segments where the DTM-derived valley polygon does not intersect the segment geometry, typically in culverted or buried urban reaches.
+Summary statistics of the typology input variables are presented in @tbl-variable-summary. The dataset covers 5,886 100-meter segments, of which 4,712 have complete records for all 16 typology input variables (80.1%). The largest source of missingness among the V1 variables is valley depth, attributable to segments where the DTM-derived valley polygon does not intersect the segment geometry, typically in culverted or buried urban reaches.
 
 These summary statistics also indicate the range of intervention conditions represented in the dataset, from highly sealed and accessible urban corridors to more open or riparian-rich reaches.
 
 ```{r}
-#| label: table-variable-summary
+#| label: tbl-variable-summary
 #| tbl-cap: "Typology input variable summary."
 #| echo: false
 source("table_helpers.R")
@@ -136,10 +136,10 @@ paper_variable_summary("tables/variable_summary.csv")
 
 ### 3.2.1 Classification performance
 
-The k = 5 classification was fitted on 4,712 complete-row segments using 16 standardized V1 and V2 variables (@table-typology-model-summary). Cluster sizes range from 511 to 1,268 segments, indicating a well-distributed classification without very small clusters (@table-typology-cluster-sizes). The silhouette coefficient of 0.141 is consistent with values reported for cluster analyses of complex urban landscape data, where overlapping gradients make clear cluster boundaries unlikely. The Calinski-Harabasz score of 621.5 indicates inter-cluster separation relative to within-cluster variance.
+The k = 5 classification was fitted on 4,712 complete-row segments using 16 standardized V1 and V2 variables (@tbl-typology-model-summary). Cluster sizes range from 511 to 1,268 segments, indicating a well-distributed classification without very small clusters (@tbl-typology-cluster-sizes). The silhouette coefficient of 0.141 is consistent with values reported for cluster analyses of complex urban landscape data, where overlapping gradients make clear cluster boundaries unlikely. The Calinski-Harabasz score of 621.5 indicates inter-cluster separation relative to within-cluster variance.
 
 ```{r}
-#| label: table-typology-model-summary
+#| label: tbl-typology-model-summary
 #| tbl-cap: "Typology model summary."
 #| echo: false
 source("table_helpers.R")
@@ -147,7 +147,7 @@ paper_table("tables/typology_model_summary.csv")
 ```
 
 ```{r}
-#| label: table-typology-cluster-sizes
+#| label: tbl-typology-cluster-sizes
 #| tbl-cap: "Typology cluster sizes."
 #| echo: false
 source("table_helpers.R")
@@ -156,7 +156,7 @@ paper_table("tables/typology_cluster_sizes.csv")
 
 ### 3.2.2 Typology profiles
 
-The typology profiles are summarized in original units (@table-typology-profile-original) and visualized as a profile heatmap (@fig-typology-heatmap) and radar profiles (@fig-typology-radar). The results suggest five corridor types.
+The typology profiles are summarized in original units (@tbl-typology-profile-original) and visualized as a profile heatmap (@fig-typology-heatmap) and radar profiles (@fig-typology-radar). The results suggest five corridor types.
 
 **Typology 1: Urbanized high-pressure corridors** (n = 708; 15.0%). These corridors have high surrounding urban pressure, with high impervious cover, high road barrier intensity, many stream entrances, extensive slow-mobility infrastructure, and many program-related POIs. At the same time, riparian width and riparian tree density are low, indicating narrow and weakly vegetated buffers.
 
@@ -169,7 +169,7 @@ The typology profiles are summarized in original units (@table-typology-profile-
 **Typology 5: Steep confined valley corridors** (n = 511; 10.8%). These corridors are defined mainly by steep slopes, deeper valleys, and shorter distance to source. They represent upper-network or confined valley settings. Riparian structure is moderate, and accessibility metrics are close to the dataset average.
 
 ```{r}
-#| label: table-typology-profile-original
+#| label: tbl-typology-profile-original
 #| tbl-cap: "Typology profiles."
 #| echo: false
 source("table_helpers.R")
@@ -182,7 +182,7 @@ paper_table_width("tables/typology_profile_original.csv", c(0.6, rep(0.55, 16)))
 
 ### 3.2.3 Spatial distribution across cities
 
-The typology assignments are not evenly distributed across the four study cities (@fig-typology-spatial; @fig-typology-by-city). Dresden and Poznan show a higher percentage of Typologies 1 and 2 in central and peri-urban corridors, whereas Jablonec nad Nisou is dominated by Typology 5 in its steep valley network and Typology 4 along more sinuous forested reaches. Senica presents a more even mix of open low-access and riparian-rich corridors across its low-gradient agricultural setting. The spatial maps show that typology membership follows recognizable geomorphological and land-use patterns within each city, instead of arbitrary spatial fragmentation.
+The typology assignment is not evenly distributed across the four study cities (@fig-typology-spatial; @fig-typology-by-city). Dresden and Poznan show a higher percentage of Types 1 and 2 in central and peri-urban corridors, whereas Jablonec nad Nisou is dominated by Type 5 in its steep valley network and Type 4 along more sinuous forested reaches. Senica presents a more even mix of open low-access and riparian-rich corridors across its low-gradient agricultural setting. The spatial maps show that typology membership follows recognizable geomorphological and land-use patterns within each city, instead of arbitrary spatial fragmentation.
 
 ![Spatial distribution of stream corridor typologies.](figures/typology_spatial_four_cities.png){#fig-typology-spatial width="92%"}
 
@@ -192,24 +192,24 @@ The typology assignments are not evenly distributed across the four study cities
 
 The intervention analysis evaluates whether the same V2 variables explain overall V3 performance across all typologies, or whether different corridor contexts point to different priority variables.
 
-### 3.3.1 Overall V3 performance by typology
+### 3.3.1 Overall V3 performance by type
 
 The overall V3 performance score varies across typology clusters, reflecting systematic differences in ecological and social conditions associated with different stream corridor contexts (@fig-v3-boxplot). Typology 5 has the highest cluster-mean modeled baseline score, while Typology 3 records the lowest baseline score, indicating the weakest aggregate performance across the available biodiversity, climate adaptation, and quality-of-life variables. Typologies 1, 2, and 4 lie at intermediate values, with differing within-typology variance structures: Typology 1 shows the widest spread, reflecting its range from high-pressure central corridors to accessible greenway segments, while Typology 4 exhibits the most compact distribution, consistent with more uniform riparian-natural conditions.
 
 The domain decomposition of the overall score shows that biodiversity variables are highest in Typologies 4 and 5, while public slow-mobility access, public transport access, and program access are highest in Typologies 1 and 2. The corridor types with the best current ecological conditions also have the poorest social accessibility, and vice versa, confirming the multi-objective nature of urban stream restoration.
 
-![Overall V3 performance by typology.](../data/intervention_optimization/fig_v3_boxplot.png){#fig-v3-boxplot}
+![Overall V3 performance by type.](../data/intervention_optimization/fig_v3_boxplot.png){#fig-v3-boxplot}
 
 ### 3.3.2 Context-dependency of intervention priorities
 
-Cluster-specific SHAP values show that intervention priorities differ strongly across typologies and do not follow a single uniform ranking (@table-shap-top-levers; @fig-intervention-summary). In Typologies 1 and 2, slow-mobility pathway length and impervious cover have the highest mean absolute SHAP values, indicating that both mobility infrastructure and surface sealing are important in accessible but ecologically stressed urban corridors.
+Cluster-specific SHAP values show that intervention priorities differ strongly across typologies and do not follow a single uniform ranking (@tbl-shap-top-levers; @fig-intervention-summary). In Typologies 1 and 2, slow-mobility pathway length and impervious cover have the highest mean absolute SHAP values, indicating that both mobility infrastructure and surface sealing are important in accessible but ecologically stressed urban corridors.
 
 In contrast, Typology 3 is led by canopy cover, followed by land-cover edge density, suggesting that in low-pressure, open corridors, the main limitation is the lack of tree canopy, not surface sealing. Typology 4 is led by edge density and open space ratio, while Typology 5 is led by riparian tree density, pointing to vegetation structure as the main constraint in already near-natural corridors.
 
 This pattern shows that impervious surface reduction is most relevant in urbanized types. In more rural or forested contexts, vegetation structure and open space are more closely related to overall performance.
 
 ```{r}
-#| label: table-shap-top-levers
+#| label: tbl-shap-top-levers
 #| tbl-cap: "Top SHAP variables by typology."
 #| echo: false
 source("table_helpers.R")
@@ -218,12 +218,12 @@ paper_table("tables/shap_top_levers.csv")
 
 ### 3.3.3 Optimal intervention scenarios per typology
 
-For each typology cluster, constrained optimization identifies the combination of V2 interventions that maximizes the predicted overall V3 gain relative to the cluster-mean baseline (@table-intervention-results; @fig-intervention-summary). Under joint optimization of the five highest-ranked variables per typology, achievable gains range from 7.3% in Typology 3 to 13.4% in Typology 1.
+For each typology cluster, constrained optimization identifies the combination of V2 interventions that maximizes the predicted overall V3 gain relative to the cluster-mean baseline (@tbl-intervention-results; @fig-intervention-summary). Under joint optimization of the five highest-ranked variables per typology, achievable gains range from 7.3% in Typology 3 to 13.4% in Typology 1.
 
 The optimal intervention sets differ across typologies. In Typology 1, the optimal set combines a large increase in slow-mobility path supply, impervious cover reduction, and riparian width expansion. Slow-mobility expansion and surface de-sealing address the main social and ecological constraints in this type. Typology 2 shows a similar structure with smaller magnitudes. Typology 3 prioritizes canopy cover gain and slow-mobility expansion, with impervious cover reduction absent from the top priorities, reflecting the low impervious baseline. Typologies 4 and 5 prioritize riparian tree density, open space ratio, and canopy cover, with smaller magnitudes reflecting the already-high ecological performance baseline. These differences support typology-specific intervention design instead of applying the same restoration strategy across the whole stream network.
 
 ```{r}
-#| label: table-intervention-results
+#| label: tbl-intervention-results
 #| tbl-cap: "Optimized intervention scenarios."
 #| echo: false
 source("table_helpers.R")
