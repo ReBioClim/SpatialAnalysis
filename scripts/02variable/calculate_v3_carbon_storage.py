@@ -1,7 +1,6 @@
 import glob
 import json
 import os
-
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -11,10 +10,10 @@ from rasterio.mask import mask
 from shapely.geometry import mapping
 
 
-lulc_path = "data/input/ESA_landcover_all.tif"
-stream_path = "data/input/streamall_100m_segments_from_mouth.gpkg"
+lulc_path = "data/prepared/ESA_landcover_all.tif"
+stream_path = "data/stream_segments/streams_03_segments_100m.gpkg"
 
-workspace = "output/invest_carbon_25833"
+workspace = "data/production/invest_carbon_25833"
 inputs = os.path.join(workspace, "inputs")
 os.makedirs(inputs, exist_ok=True)
 
@@ -35,8 +34,13 @@ with rasterio.open(lulc_path) as src:
     profile = src.profile.copy()
 
 valid_codes = np.array([10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100], dtype=np.int16)
-lut = valid_codes[np.abs(np.arange(101)[:, None] - valid_codes).argmin(axis=1)]
-lulc_fixed = lut[np.clip(lulc, 0, 100)]
+valid_lulc = (lulc > 0) & (lulc <= 100)
+lulc_fixed = np.zeros(lulc.shape, dtype=np.int16)
+if np.any(valid_lulc):
+    values = lulc[valid_lulc].astype(np.int16)
+    lulc_fixed[valid_lulc] = valid_codes[
+        np.abs(values[:, None] - valid_codes).argmin(axis=1)
+    ]
 
 profile.update(
     dtype=rasterio.int16,

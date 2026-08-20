@@ -1,15 +1,13 @@
-import os
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from shapely.geometry import LineString, MultiLineString, Point
-from shapely.ops import nearest_points
+from shapely.geometry import GeometryCollection, LineString, MultiLineString, MultiPoint, Point
 from sklearn.cluster import DBSCAN
 
 
-roads = gpd.read_file("data/input/roads_merged.gpkg").to_crs("EPSG:25833")
-segments = gpd.read_file("data/input/streamall_400m_segments_from_mouth_with_city.gpkg").to_crs("EPSG:25833")
-stops = gpd.read_file("data/input/transportation_merged.gpkg").to_crs("EPSG:25833")
+roads = gpd.read_file("data/prepared/roads_merged.gpkg").to_crs("EPSG:25833")
+segments = gpd.read_file("data/stream_segments/streams_03_segments_400m.gpkg").to_crs("EPSG:25833")
+stops = gpd.read_file("data/prepared/transportation_merged.gpkg").to_crs("EPSG:25833")
 
 output_path = "data/production/variables/v2_access_transport.gpkg"
 
@@ -49,6 +47,20 @@ def geometry_lines(geom):
     return []
 
 
+def road_entry_points(line, belt):
+    """Return road points where a walkable road crosses the stream belt."""
+    intersection = line.intersection(belt.boundary)
+    if intersection.is_empty:
+        return []
+    if isinstance(intersection, Point):
+        return [intersection]
+    if isinstance(intersection, MultiPoint):
+        return list(intersection.geoms)
+    if isinstance(intersection, GeometryCollection):
+        return [part for part in intersection.geoms if isinstance(part, Point)]
+    return [intersection.centroid]
+
+
 results = []
 
 for city in cities:
@@ -59,15 +71,14 @@ for city in cities:
     t = stops[stops["city"] == city].copy()
 
     s["entrance_count"] = 0.0
-    s["stop_count"] = 0.0
+    s["public_transport_count"] = 0.0
 
     if len(r) == 0 or len(s) == 0:
         results.append(s)
         continue
 
-    if "fclass" in r.columns:
-        road_class = r["fclass"].astype(str).str.lower()
-        r = r[road_class.isin(walkable_road_classes)].copy()
+    road_class = r["fclass"].astype(str).str.lower()
+    r = r[road_class.isin(walkable_road_classes)].copy()
 
     if len(r) == 0:
         results.append(s)
@@ -95,8 +106,7 @@ for city in cities:
             continue
         for line in geometry_lines(row.geometry):
             if line.intersects(belt_geom):
-                pt, _ = nearest_points(line, belt_geom)
-                entry_points.append(pt)
+                entry_points.extend(road_entry_points(line, belt_geom))
 
     if entry_points:
         entry_gdf = gpd.GeoDataFrame({"geometry": entry_points}, geometry="geometry", crs=s.crs)
@@ -117,15 +127,13 @@ for city in cities:
         )
         joined = gpd.sjoin(t[["geometry"]], segment_buffers, predicate="within", how="inner")
         stop_counts = joined.groupby("segment400_id").size()
-        s["stop_count"] = s["segment400_id"].map(stop_counts).fillna(0).astype(float)
+        s["public_transport_count"] = s["segment400_id"].map(stop_counts).fillna(0).astype(float)
 
     results.append(s)
 
 
 all_data = pd.concat(results, ignore_index=True)
 
-cols = ["segment400_id", "merged_id", "city", "entrance_count", "stop_count", "geometry"]
+cols = ["segment400_id", "merged_id", "city", "entrance_count", "public_transport_count", "geometry"]
 out = gpd.GeoDataFrame(all_data[cols], geometry="geometry", crs=all_data.crs)
-if os.path.exists(output_path):
-    os.remove(output_path)
 out.to_file(output_path, driver="GPKG")

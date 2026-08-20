@@ -1,11 +1,11 @@
-import os
+import re
 import geopandas as gpd
 import pandas as pd
 
 
-segments_path = "data/input/streamall_400m_segments_from_mouth_with_city.gpkg"
-poi_points_path = "data/input/poi_points_merged.gpkg"
-poi_polygons_path = "data/input/poi_polygons_merged.gpkg"
+segments_path = "data/stream_segments/streams_03_segments_400m.gpkg"
+poi_points_path = "data/prepared/poi_points_merged.gpkg"
+poi_polygons_path = "data/prepared/poi_polygons_merged.gpkg"
 output_path = "data/production/variables/v2_access_poi_programme_amenities.gpkg"
 
 cities = ["Dresden", "Poznan", "Jablonec", "Senica"]
@@ -60,16 +60,19 @@ tag_columns = [
     "class",
     "category",
     "type",
-    "name",
 ]
 
 
-def tag_text(row):
-    parts = []
+def tag_values(row):
+    values = set()
     for col in tag_columns:
         if col in row.index and pd.notna(row[col]):
-            parts.append(str(row[col]).strip().lower())
-    return " ".join(parts)
+            values.update(
+                token.strip().lower()
+                for token in re.split(r"[;,|]", str(row[col]))
+                if token.strip()
+            )
+    return values
 
 
 segments = gpd.read_file(segments_path).to_crs("EPSG:25833")
@@ -82,9 +85,13 @@ if len(poi_polygons):
 
 poi_all = gpd.GeoDataFrame(pd.concat([poi_points, poi_polygons], ignore_index=True), crs=poi_points.crs)
 poi_all = poi_all.copy()
-poi_all["tag_text"] = [tag_text(row) for _, row in poi_all.iterrows()]
-poi_all["amenity_match"] = poi_all["tag_text"].apply(lambda text: next((tag for tag in amenity_tags if tag in text), None))
-poi_all["programme_match"] = poi_all["tag_text"].apply(lambda text: next((tag for tag in programme_tags if tag in text), None))
+poi_all["tag_values"] = [tag_values(row) for _, row in poi_all.iterrows()]
+poi_all["amenity_match"] = poi_all["tag_values"].apply(
+    lambda values: next((tag for tag in sorted(amenity_tags) if tag in values), None)
+)
+poi_all["programme_match"] = poi_all["tag_values"].apply(
+    lambda values: next((tag for tag in sorted(programme_tags) if tag in values), None)
+)
 
 results = []
 
@@ -95,9 +102,7 @@ for city in cities:
     p = poi_all[poi_all["city"] == city].copy()
 
     s["poi_amenities"] = 0.0
-    s["poi_programme"] = 0.0
-    s["amenity_type_richness"] = 0.0
-    s["programme_type_richness"] = 0.0
+    s["programme_count"] = 0.0
 
     if len(s) == 0 or len(p) == 0:
         results.append(s)
@@ -121,13 +126,8 @@ for city in cities:
 
     amenity_counts = amenity_joined.groupby("segment400_id").size()
     programme_counts = programme_joined.groupby("segment400_id").size()
-    amenity_richness = amenity_joined.groupby("segment400_id")["amenity_match"].nunique()
-    programme_richness = programme_joined.groupby("segment400_id")["programme_match"].nunique()
-
     s["poi_amenities"] = s["segment400_id"].map(amenity_counts).fillna(0).astype(float)
-    s["poi_programme"] = s["segment400_id"].map(programme_counts).fillna(0).astype(float)
-    s["amenity_type_richness"] = s["segment400_id"].map(amenity_richness).fillna(0).astype(float)
-    s["programme_type_richness"] = s["segment400_id"].map(programme_richness).fillna(0).astype(float)
+    s["programme_count"] = s["segment400_id"].map(programme_counts).fillna(0).astype(float)
 
     results.append(s)
 
@@ -139,12 +139,8 @@ cols = [
     "merged_id",
     "city",
     "poi_amenities",
-    "poi_programme",
-    "amenity_type_richness",
-    "programme_type_richness",
+    "programme_count",
     "geometry",
 ]
 out = gpd.GeoDataFrame(all_data[cols], geometry="geometry", crs=all_data.crs)
-if os.path.exists(output_path):
-    os.remove(output_path)
 out.to_file(output_path, driver="GPKG")

@@ -1,11 +1,7 @@
+"""Based on InVEST Habitat Quality model v3.19 (Sharp et al., 2024)
+"""
 
-# Based on the model Sharp et al. (2024), InVEST Habitat Quality model v3.19.
-
-
-import argparse
-import json
 import os
-
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -16,11 +12,11 @@ from scipy.ndimage import label
 from shapely.geometry import mapping
 
 
-lulc_path = "data/input/ESA_landcover_all.tif"
-stream_path = "data/input/streamall_100m_segments_from_mouth.gpkg"
-roads_path = "data/input/roads_merged.gpkg"
+lulc_path = "data/prepared/ESA_landcover_all.tif"
+stream_path = "data/stream_segments/streams_03_segments_100m.gpkg"
+roads_path = "data/prepared/roads_merged.gpkg"
 
-workspace = "output/invest_hq_25833"
+workspace = "data/production/invest_hq_25833"
 inputs = os.path.join(workspace, "inputs")
 
 lulc_fixed_path = os.path.join(inputs, "lulc_cur_discrete_esa.tif")
@@ -29,8 +25,6 @@ threat_roads_path = os.path.join(inputs, "threat_roads_cur.tif")
 threat_ag_path = os.path.join(inputs, "threat_agriculture_cur.tif")
 threats_csv = os.path.join(inputs, "threats.csv")
 sens_csv = os.path.join(inputs, "sensitivity.csv")
-args_json = os.path.join(inputs, "habitat_quality_args.json")
-
 output_path = "data/production/variables/v3_habitat_quality.gpkg"
 
 major_road_classes = {"motorway", "trunk", "primary", "secondary", "tertiary"}
@@ -40,10 +34,7 @@ low_hq_threshold = 0.3
 
 
 def find_hq_raster() -> str:
-    hq_raster = os.path.join(workspace, "quality_c_esa25833.tif")
-    if not os.path.exists(hq_raster):
-        raise RuntimeError(f"Expected habitat-quality raster not found: {hq_raster}")
-    return hq_raster
+    return os.path.join(workspace, "quality_c_esa25833.tif")
 
 
 def write_threat(arr, path, profile):
@@ -59,7 +50,6 @@ def run_invest_hq() -> str:
     os.makedirs(inputs, exist_ok=True)
 
     streams = gpd.read_file(stream_path).to_crs("EPSG:25833")
-    stream_buffer = streams.buffer(100).union_all()
     aoi = streams.buffer(1000).union_all()
 
     # 1) clip ESA LULC to AOI and snap to discrete class codes
@@ -148,42 +138,8 @@ def run_invest_hq() -> str:
         "sensitivity_table_path": sens_csv,
         "half_saturation_constant": 0.5,
     }
-    with open(args_json, "w", encoding="utf-8") as f:
-        json.dump(args, f, indent=2)
-
     habitat_quality.execute(args)
-
-    hq_file = find_hq_raster()
-    write_workspace_summary(hq_file, stream_buffer)
-    return hq_file
-
-
-def write_workspace_summary(hq_file, stream_buffer):
-    with rasterio.open(hq_file) as src:
-        out, _ = mask(src, [stream_buffer], crop=False, filled=False)
-        v = out[0].compressed().astype(np.float32)
-        v = v[(v >= 0.0) & (v <= 1.0)]
-
-    summary = pd.DataFrame(
-        {
-            "metric": ["pixel_count", "hq_mean", "hq_median", "hq_std", "hq_p10", "hq_p90", "hq_low_share_lt_0p3"],
-            "value": [
-                int(v.size),
-                float(np.mean(v)),
-                float(np.median(v)),
-                float(np.std(v)),
-                float(np.percentile(v, 10)),
-                float(np.percentile(v, 90)),
-                float(np.mean(v < 0.3)),
-            ],
-        }
-    )
-    out_csv = os.path.join(workspace, "riparian_hq_stats_100m.csv")
-    summary.to_csv(out_csv, index=False)
-
-    print(f"HQ raster: {hq_file}")
-    print(f"Riparian summary: {out_csv}")
-    print(summary.to_string(index=False))
+    return find_hq_raster()
 
 
 def stats_in_buffer(src, geom) -> pd.Series:
@@ -195,16 +151,16 @@ def stats_in_buffer(src, geom) -> pd.Series:
     if vals.size == 0:
         return pd.Series(
             {
-                "hq_mean": np.nan,
-                "hq_median": np.nan,
-                "hq_p10": np.nan,
-                "hq_p90": np.nan,
-                "hq_low_share_lt0p3": np.nan,
-                "hq_suitable_share_ge0p6": np.nan,
-                "hq_largest_patch_share_ge0p6": np.nan,
-                "hq_effective_mesh_ge0p6": np.nan,
-                "hq_patch_count_ge0p6": np.nan,
-                "hq_px_count": 0,
+                "habitat_quality": np.nan,
+                "habitat_quality_median": np.nan,
+                "habitat_quality_p10": np.nan,
+                "habitat_quality_p90": np.nan,
+                "habitat_quality_low_fraction": np.nan,
+                "habitat_quality_suitable_fraction": np.nan,
+                "habitat_quality_largest_patch_fraction": np.nan,
+                "habitat_quality_effective_mesh": np.nan,
+                "habitat_quality_patch_count": np.nan,
+                "habitat_quality_pixel_count": 0,
             }
         )
 
@@ -225,16 +181,16 @@ def stats_in_buffer(src, geom) -> pd.Series:
 
     return pd.Series(
         {
-            "hq_mean": float(np.mean(vals)),
-            "hq_median": float(np.median(vals)),
-            "hq_p10": float(np.percentile(vals, 10)),
-            "hq_p90": float(np.percentile(vals, 90)),
-            "hq_low_share_lt0p3": float(np.mean(vals < low_hq_threshold)),
-            "hq_suitable_share_ge0p6": float(suitable_count / total_valid),
-            "hq_largest_patch_share_ge0p6": largest_patch_share,
-            "hq_effective_mesh_ge0p6": effective_mesh,
-            "hq_patch_count_ge0p6": int(patch_count),
-            "hq_px_count": int(vals.size),
+            "habitat_quality": float(np.mean(vals)),
+            "habitat_quality_median": float(np.median(vals)),
+            "habitat_quality_p10": float(np.percentile(vals, 10)),
+            "habitat_quality_p90": float(np.percentile(vals, 90)),
+            "habitat_quality_low_fraction": float(np.mean(vals < low_hq_threshold)),
+            "habitat_quality_suitable_fraction": float(suitable_count / total_valid),
+            "habitat_quality_largest_patch_fraction": largest_patch_share,
+            "habitat_quality_effective_mesh": effective_mesh,
+            "habitat_quality_patch_count": int(patch_count),
+            "habitat_quality_pixel_count": int(vals.size),
         }
     )
 
@@ -244,32 +200,16 @@ def summarize_segments(hq_raster):
     buffered = segments.copy()
     buffered["geometry"] = buffered.geometry.buffer(100)
 
-    print(f"Using HQ raster: {hq_raster}")
-
     with rasterio.open(hq_raster) as src:
         hq_stats = buffered.geometry.apply(lambda g: stats_in_buffer(src, g))
 
     out = segments[["segment100_id", "geometry"]].copy()
     out = pd.concat([out.reset_index(drop=True), hq_stats.reset_index(drop=True)], axis=1)
 
-    if os.path.exists(output_path):
-        os.remove(output_path)
     out.to_file(output_path, driver="GPKG")
 
-    print(f"Wrote {len(out)} segments -> {output_path}")
-    print(out["hq_mean"].describe().to_string())
-
-
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--skip-invest",
-        action="store_true",
-        help="Use the existing HQ raster and only update per-segment summaries.",
-    )
-    args = parser.parse_args()
-
-    hq_raster = find_hq_raster() if args.skip_invest else run_invest_hq()
+    hq_raster = run_invest_hq()
     summarize_segments(hq_raster)
 
 
