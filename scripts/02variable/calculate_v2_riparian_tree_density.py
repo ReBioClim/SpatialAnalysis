@@ -4,7 +4,7 @@ import rasterio
 from rasterio.mask import mask
 from shapely.geometry import mapping
 
-segments_path = "data/input/streamall_100m_segments_from_mouth.gpkg"
+segments_path = "data/stream_segments/streams_03_segments_100m.gpkg"
 canopy_raster_path = "data/canopy/tcd_2023_tiles/tcd_2023.vrt"
 output_path = "data/production/variables/v2_riparian_tree_density.gpkg"
 
@@ -43,5 +43,5 @@ for geom in buffered.geometry:
     values.append(ratio)
 
 out = segments[["segment100_id", "geometry"]].copy()
-out["riparian_tree_density"] = values
+out["riparian_tree_cover"] = values
 out.to_file(output_path, driver="GPKG")

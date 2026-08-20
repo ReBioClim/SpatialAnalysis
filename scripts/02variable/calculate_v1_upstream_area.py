@@ -1,3 +1,5 @@
+# reference Bartos (2020), pysheds
+
 import geopandas as gpd
 import numpy as np
 import os
@@ -12,16 +14,15 @@ if not hasattr(np, "in1d"):
     np.in1d = np.isin
 
 
-segments = gpd.read_file("data/input/streamall_200m_segments_from_mouth.gpkg")
+segments = gpd.read_file("data/stream_segments/streams_03_segments_200m.gpkg")
 target_crs = "EPSG:25833"
 segments = segments.to_crs(target_crs)
-dem_path = "data/input/DTM_30m.tif"
+dem_path = "data/prepared/DTM_30m.tif"
 dem_tmp_path = "data/production/variables/_tmp_dtm_30m_epsg25833.tif"
 
 with rasterio.open(dem_path) as src:
     dem_arr = src.read(1)
     profile = src.profile.copy()
-    profile.update(crs=target_crs)
     pixel_area = abs(src.transform.a * src.transform.e)
     buffer_size = max(abs(src.transform.a), abs(src.transform.e))
 
@@ -59,8 +60,8 @@ with MemoryFile() as mem:
 
 out = segments[["segment200_id", "geometry"]].copy()
 out["upstream_area_m2"] = values_m2
-out["upstream_area_log"] = values_log
+out["upstream_area"] = values_log
 out.to_file("data/production/variables/v1_upstream_area.gpkg", driver="GPKG")
 
-if os.path.exists(dem_tmp_path):
+if os.path.exists(dem_tmp_path):  # Remove the temporary pysheds input.
     os.remove(dem_tmp_path)

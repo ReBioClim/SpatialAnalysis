@@ -1,6 +1,5 @@
 from collections import defaultdict
-import os
-
+import re
 import geopandas as gpd
 import networkx as nx
 import numpy as np
@@ -11,10 +10,10 @@ from shapely.ops import nearest_points
 from sklearn.cluster import DBSCAN
 
 
-segments = gpd.read_file("data/input/streamall_400m_segments_from_mouth_with_city.gpkg").to_crs("EPSG:25833")
-roads = gpd.read_file("data/input/roads_merged.gpkg").to_crs("EPSG:25833")
-poi_points = gpd.read_file("data/input/poi_points_merged.gpkg").to_crs("EPSG:25833")
-poi_polygons = gpd.read_file("data/input/poi_polygons_merged.gpkg").to_crs("EPSG:25833")
+segments = gpd.read_file("data/stream_segments/streams_03_segments_400m.gpkg").to_crs("EPSG:25833")
+roads = gpd.read_file("data/prepared/roads_merged.gpkg").to_crs("EPSG:25833")
+poi_points = gpd.read_file("data/prepared/poi_points_merged.gpkg").to_crs("EPSG:25833")
+poi_polygons = gpd.read_file("data/prepared/poi_polygons_merged.gpkg").to_crs("EPSG:25833")
 
 output_path = "data/production/variables/v3_stream_use_access.gpkg"
 
@@ -93,7 +92,6 @@ tag_columns = [
     "class",
     "category",
     "type",
-    "name",
 ]
 
 
@@ -103,6 +101,19 @@ def minmax(values):
     if len(finite) == 0 or finite.max() <= finite.min():
         return np.zeros(len(x), dtype=float)
     out = (x - finite.min()) / (finite.max() - finite.min())
+    out[~np.isfinite(out)] = 0
+    return out
+
+
+def log1p_minmax(values):
+    """Min-max on log1p scale to reduce leverage of extreme counts."""
+    x = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    x = np.clip(x, 0, None)
+    transformed = np.log1p(x)
+    finite = transformed[np.isfinite(transformed)]
+    if len(finite) == 0 or finite.max() <= finite.min():
+        return np.zeros(len(x), dtype=float)
+    out = (transformed - finite.min()) / (finite.max() - finite.min())
     out[~np.isfinite(out)] = 0
     return out
 
@@ -192,12 +203,16 @@ def count_reachable_from_entries(graph, entries, origins, threshold_m):
     return counts
 
 
-def tag_text(row):
-    parts = []
+def tag_values(row):
+    values = set()
     for col in tag_columns:
         if col in row.index and pd.notna(row[col]):
-            parts.append(str(row[col]).strip().lower())
-    return " ".join(parts)
+            values.update(
+                token.strip().lower()
+                for token in re.split(r"[;,|]", str(row[col]))
+                if token.strip()
+            )
+    return values
 
 
 poi_polygons = poi_polygons.copy()
@@ -205,9 +220,13 @@ if len(poi_polygons):
     poi_polygons["geometry"] = poi_polygons.geometry.centroid
 
 poi_all = gpd.GeoDataFrame(pd.concat([poi_points, poi_polygons], ignore_index=True), crs=poi_points.crs)
-poi_all["tag_text"] = [tag_text(row) for _, row in poi_all.iterrows()]
-poi_all["amenity_match"] = poi_all["tag_text"].apply(lambda text: next((tag for tag in amenity_tags if tag in text), None))
-poi_all["programme_match"] = poi_all["tag_text"].apply(lambda text: next((tag for tag in programme_tags if tag in text), None))
+poi_all["tag_values"] = [tag_values(row) for _, row in poi_all.iterrows()]
+poi_all["amenity_match"] = poi_all["tag_values"].apply(
+    lambda values: next((tag for tag in sorted(amenity_tags) if tag in values), None)
+)
+poi_all["programme_match"] = poi_all["tag_values"].apply(
+    lambda values: next((tag for tag in sorted(programme_tags) if tag in values), None)
+)
 
 results = []
 
@@ -219,16 +238,15 @@ for city in cities:
     p = poi_all[poi_all["city"] == city].copy()
 
     out = s[["segment400_id", "merged_id", "city", "geometry"]].copy()
-    out["stream_programme_access_count"] = 0.0
+    out["programme_accessible_count"] = 0.0
     out["stream_amenity_access_count"] = 0.0
 
     if len(s) == 0 or len(r) == 0 or len(p) == 0:
         results.append(out)
         continue
 
-    if "fclass" in r.columns:
-        road_class = r["fclass"].astype(str).str.lower()
-        r = r[road_class.isin(walkable_road_classes)].copy()
+    road_class = r["fclass"].astype(str).str.lower()
+    r = r[road_class.isin(walkable_road_classes)].copy()
 
     if len(r) == 0:
         results.append(out)
@@ -269,7 +287,7 @@ for city in cities:
     if len(programme) and len(entries):
         graph = build_graph(r)
         counts = count_reachable_from_entries(graph, entries, programme, programme_distance_m)
-        out["stream_programme_access_count"] = out["segment400_id"].map(counts).fillna(0).astype(float)
+        out["programme_accessible_count"] = out["segment400_id"].map(counts).fillna(0).astype(float)
 
     if len(amenity) and len(entries):
         stream_buffers = gpd.GeoDataFrame(
@@ -301,20 +319,18 @@ for city in cities:
 
 
 all_data = pd.concat(results, ignore_index=True)
-all_data["stream_programme_access_index"] = minmax(all_data["stream_programme_access_count"])
-all_data["stream_amenity_access_index"] = minmax(all_data["stream_amenity_access_count"])
+all_data["programme_accessibility"] = log1p_minmax(all_data["programme_accessible_count"])
+all_data["stream_amenity_access_index"] = log1p_minmax(all_data["stream_amenity_access_count"])
 
 cols = [
     "segment400_id",
     "merged_id",
     "city",
-    "stream_programme_access_count",
-    "stream_programme_access_index",
+    "programme_accessible_count",
+    "programme_accessibility",
     "stream_amenity_access_count",
     "stream_amenity_access_index",
     "geometry",
 ]
 out = gpd.GeoDataFrame(all_data[cols], geometry="geometry", crs=segments.crs)
-if os.path.exists(output_path):
-    os.remove(output_path)
 out.to_file(output_path, driver="GPKG")

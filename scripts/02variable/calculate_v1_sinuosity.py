@@ -3,7 +3,7 @@ import numpy as np
 from shapely.geometry import Point
 
 
-segments = gpd.read_file("data/input/streamall_200m_segments_from_mouth.gpkg")
+segments = gpd.read_file("data/stream_segments/streams_03_segments_200m.gpkg")
 
 start = segments.geometry.apply(lambda g: Point(g.coords[0]))
 end = segments.geometry.apply(lambda g: Point(g.coords[-1]))

@@ -6,9 +6,9 @@ from scipy.stats import entropy
 from shapely.geometry import mapping
 
 
-segments = gpd.read_file("data/input/streamall_100m_segments_from_mouth.gpkg")
-landcover = rasterio.open("data/input/ESA_landcover_all.tif")
-green = [10, 20, 30, 90, 95]
+segments = gpd.read_file("data/stream_segments/streams_03_segments_100m.gpkg")
+landcover = rasterio.open("data/prepared/ESA_landcover_all.tif")
+green = [10, 20, 30, 90, 95] 
 
 buf = segments.copy()
 buf["geometry"] = buf.geometry.buffer(150)
@@ -25,5 +25,5 @@ for g in buf.geometry:
     shan.append(entropy(np.array(counts) / sum(counts)))
 
 out = segments[["segment100_id", "geometry"]].copy()
-out["shannon_150m"] = shan
-out.to_file("data/production/variables/v2_shannon.gpkg", driver="GPKG")
+out["land_cover_diversity"] = shan
+out.to_file("data/production/variables/v2_land_cover_diversity.gpkg", driver="GPKG")

@@ -6,21 +6,20 @@ import rasterio
 from shapely.geometry import GeometryCollection, LineString, MultiLineString, Point
 
 
-TARGET_CRS = "EPSG:25833"
-SEGMENTS_PATH = "data/input/streamall_200m_segments_from_mouth.gpkg"
-VALLEYS_PATH = "data/valley/valleys_full_10kmbuf.gpkg"
-CITY_REF_PATH = "data/production/variables/all_segments_morphology_adjusted.gpkg"
-DTM_BY_CITY = {
+target_crs = "EPSG:25833"
+segments_path = "data/stream_segments/streams_03_segments_200m.gpkg"
+valleys_path = "data/production/variables/valleys_full_10kmbuf.gpkg"
+dtm_by_city = {
     "Dresden": "data/DTM/buffered/DEM_30m_Dresden_10kmbuf_25833.tif",
     "Jablonec": "data/DTM/buffered/DEM_30m_Jablonec_10kmbuf_25833.tif",
     "Poznan": "data/DTM/buffered/DEM_30m_Poznan_10kmbuf_25833.tif",
     "Senica": "data/DTM/buffered/DEM_30m_Senica_10kmbuf_25833.tif",
 }
-OUTPUT_PATH = "data/production/variables/v1_valley_morphology.gpkg"
-OUTPUT_LAYER = "v1_valley_morphology"
+output_path = "data/production/variables/v1_valley_morphology.gpkg"
+output_layer = "v1_valley_morphology"
 
 # Build a long normal section around each 200m segment midpoint.
-CROSS_HALF_LENGTH_M = 5000.0
+cross_half_length_m = 5000.0
 
 
 def _unit_perpendicular(line: LineString):
@@ -103,22 +102,15 @@ def _sample_elevation(src, x, y):
 
 
 def main():
-    segments = gpd.read_file(SEGMENTS_PATH).to_crs(TARGET_CRS)
-    valleys = gpd.read_file(VALLEYS_PATH).to_crs(TARGET_CRS)
-    city_ref = gpd.read_file(CITY_REF_PATH)[["segment200_id", "city"]]
-    segments = segments.merge(city_ref, on="segment200_id", how="left")
+    segments = gpd.read_file(segments_path).to_crs(target_crs)
+    valleys = gpd.read_file(valleys_path).to_crs(target_crs)
 
-    if "merged_id" not in segments.columns:
-        raise ValueError("segments file must contain 'merged_id'")
-    if "namemerge_id" not in valleys.columns:
-        raise ValueError("valleys file must contain 'namemerge_id'")
-
-    valley_lookup = valleys.set_index("namemerge_id").geometry.to_dict()
+    valley_lookup = valleys.set_index("merged_id").geometry.to_dict()
 
     widths = []
     depths = []
 
-    dem_handles = {city: rasterio.open(path) for city, path in DTM_BY_CITY.items()}
+    dem_handles = {city: rasterio.open(path) for city, path in dtm_by_city.items()}
     try:
         for _, row in segments.iterrows():
             seg_geom = row.geometry
@@ -137,8 +129,8 @@ def main():
                 depths.append(np.nan)
                 continue
 
-            left = Point(center.x - perp[0] * CROSS_HALF_LENGTH_M, center.y - perp[1] * CROSS_HALF_LENGTH_M)
-            right = Point(center.x + perp[0] * CROSS_HALF_LENGTH_M, center.y + perp[1] * CROSS_HALF_LENGTH_M)
+            left = Point(center.x - perp[0] * cross_half_length_m, center.y - perp[1] * cross_half_length_m)
+            right = Point(center.x + perp[0] * cross_half_length_m, center.y + perp[1] * cross_half_length_m)
             section = LineString([left, right])
 
             inter = section.intersection(valley_geom)
@@ -183,7 +175,7 @@ def main():
     out = segments[["segment200_id", "merged_id", "geometry"]].copy()
     out["valley_width"] = widths
     out["valley_depth"] = depths
-    out.to_file(OUTPUT_PATH, layer=OUTPUT_LAYER, driver="GPKG")
+    out.to_file(output_path, layer=output_layer, driver="GPKG")
 
 
 if __name__ == "__main__":

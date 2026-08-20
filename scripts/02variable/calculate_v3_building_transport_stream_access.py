@@ -1,5 +1,4 @@
 from collections import defaultdict
-import os
 import geopandas as gpd
 import networkx as nx
 import numpy as np
@@ -10,10 +9,10 @@ from shapely.ops import nearest_points
 from sklearn.cluster import DBSCAN
 
 
-segments = gpd.read_file("data/input/streamall_400m_segments_from_mouth_with_city.gpkg").to_crs("EPSG:25833")
-roads = gpd.read_file("data/input/roads_merged.gpkg").to_crs("EPSG:25833")
-buildings = gpd.read_file("data/25833/buildings_merged.gpkg").to_crs("EPSG:25833")
-transport = gpd.read_file("data/input/transportation_merged.gpkg").to_crs("EPSG:25833")
+segments = gpd.read_file("data/stream_segments/streams_03_segments_400m.gpkg").to_crs("EPSG:25833")
+roads = gpd.read_file("data/prepared/roads_merged.gpkg").to_crs("EPSG:25833")
+buildings = gpd.read_file("data/prepared/buildings_merged.gpkg").to_crs("EPSG:25833")
+transport = gpd.read_file("data/prepared/transportation_merged.gpkg").to_crs("EPSG:25833")
 
 output_path = "data/production/variables/v3_building_transport_stream_access.gpkg"
 
@@ -147,18 +146,17 @@ for city in cities:
     t = transport[transport["city"] == city].copy()
 
     out = s[["segment400_id", "merged_id", "city", "geometry"]].copy()
-    out["building_stream_exposure_800m"] = 0.0
+    out["building_accessibility"] = 0.0
     out["building_min_network_distance_m"] = np.nan
-    out["transport_stream_exposure_400m"] = 0.0
+    out["public_transport_accessibility"] = 0.0
     out["transport_min_network_distance_m"] = np.nan
 
     if len(s) == 0 or len(r) == 0:
         results.append(out)
         continue
 
-    if "fclass" in r.columns:
-        road_class = r["fclass"].astype(str).str.lower()
-        r = r[road_class.isin(walkable_road_classes)].copy()
+    road_class = r["fclass"].astype(str).str.lower()
+    r = r[road_class.isin(walkable_road_classes)].copy()
 
     if len(r) == 0:
         results.append(out)
@@ -206,7 +204,7 @@ for city in cities:
             building_distance_m,
             max_search_m,
         )
-        out["building_stream_exposure_800m"] = out["segment400_id"].map(exposure).fillna(0).astype(float)
+        out["building_accessibility"] = out["segment400_id"].map(exposure).fillna(0).astype(float)
         out["building_min_network_distance_m"] = out["segment400_id"].map(min_distance)
 
     if len(t):
@@ -217,7 +215,7 @@ for city in cities:
             transport_distance_m,
             max_search_m,
         )
-        out["transport_stream_exposure_400m"] = out["segment400_id"].map(exposure).fillna(0).astype(float)
+        out["public_transport_accessibility"] = out["segment400_id"].map(exposure).fillna(0).astype(float)
         out["transport_min_network_distance_m"] = out["segment400_id"].map(min_distance)
 
     results.append(out)
@@ -225,6 +223,4 @@ for city in cities:
 
 all_data = pd.concat(results, ignore_index=True)
 out = gpd.GeoDataFrame(all_data, geometry="geometry", crs=segments.crs)
-if os.path.exists(output_path):
-    os.remove(output_path)
 out.to_file(output_path, driver="GPKG")

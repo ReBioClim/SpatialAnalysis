@@ -4,8 +4,8 @@ import rasterio
 from rasterio.mask import mask
 from shapely.geometry import mapping
 
-segments_path = "data/input/streamall_100m_segments_from_mouth.gpkg"
-landcover_path = "data/input/ESA_landcover_all.tif"
+segments_path = "data/stream_segments/streams_03_segments_100m.gpkg"
+landcover_path = "data/prepared/ESA_landcover_all.tif"
 output_path = "data/production/variables/v2_open_space_ratio.gpkg"
 
 buffer_m = 100
@@ -17,26 +17,13 @@ landcover = rasterio.open(landcover_path)
 buffered = segments.copy()
 buffered["geometry"] = buffered.geometry.buffer(buffer_m)
 
-pixel_area = abs(landcover.transform.a * landcover.transform.e)
 values = []
 
 for geom in buffered.geometry:
-    area = geom.area
-    if area == 0:
-        values.append(0.0)
-        continue
-
-    img, _ = mask(landcover, [mapping(geom)], crop=True)
-    arr = img[0]
-
-    if landcover.nodata is not None:
-        arr = arr[arr != landcover.nodata]
-
-    open_count = np.sum(np.isin(arr, open_space_classes))
-    ratio = (open_count * pixel_area) / area
-    ratio = float(np.clip(ratio, 0.0, 1.0))
-    values.append(ratio)
+    img, _ = mask(landcover, [mapping(geom)], crop=True, filled=False)
+    arr = img[0].compressed()
+    values.append(float(np.mean(np.isin(arr, open_space_classes))) if len(arr) else np.nan)
 
 out = segments[["segment100_id", "geometry"]].copy()
-out["open_space_ratio"] = values
+out["open_space_cover"] = values
 out.to_file(output_path, driver="GPKG")
