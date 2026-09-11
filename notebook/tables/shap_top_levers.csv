@@ -1,0 +1,6 @@
+Typology,First variable,SHAP 1,Second variable,SHAP 2,Third variable,SHAP 3
+1,Slow-mobility length,0.017,Impervious cover,0.0141,Riparian width,0.011
+2,Slow-mobility length,0.0128,Impervious cover,0.0128,Riparian tree density,0.0069
+3,Canopy cover,0.0154,Edge density,0.0116,Slow-mobility length,0.0105
+4,Edge density,0.0078,Open space ratio,0.0076,Riparian tree density,0.0072
+5,Riparian tree density,0.0115,Open space ratio,0.0093,Canopy cover,0.0087

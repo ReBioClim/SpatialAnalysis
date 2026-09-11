@@ -1,0 +1,27 @@
+body {
+  font-family: Arial, sans-serif;
+}
+
+.quarto-container table {
+  width: 100%;
+}
+
+.quarto-container table td,
+.quarto-container table th {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  vertical-align: top;
+}
+
+.flextable {
+  max-width: 100%;
+}
+
+.cell-output-display {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+div.cell {
+  margin-bottom: 0.5em !important;
+}
